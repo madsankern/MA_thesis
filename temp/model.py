@@ -93,14 +93,14 @@ class model_class():
         sol = self.sol # I think this must definered somewhere in the beginning
 
         # Initialize
-        shape = (par.Nh, par.Nm) # Adjust this later with add. states
-        
-        sol.c_keep = np.zeros(shape)
-        sol.inv_v_keep  = np.zeros(shape)
-        sol.inv_marg_u_keep = np.zeros(shape)
+        keep_shape = (par.Nh, par.Nm) # Adjust this later with add. states
+        sol.c_keep = np.zeros(keep_shape)
+        sol.inv_v_keep  = np.zeros(keep_shape)
+        sol.inv_marg_u_keep = np.zeros(keep_shape)
 
+        adj_shaped = (par.Nx)
         sol.h_adj = np.zeros(shape)
-        sol.c_adj = np.zeros(adj_shape)
+        sol.c_adj = np.zeros(shape)
         sol.inv_v_adj = np.zeros(adj_shape)
         sol.inv_marg_u_adj = np.zeros(adj_shape)
 
@@ -121,12 +121,12 @@ class model_class():
 
                 # Solve last period
                 if t == par.T-1:
-
-                    last_period.solve(t,sol,par)
+                    x = 1
+                    # last_period.solve(t,sol,par)
 
                 # All other periods
                 else:
-
+                    x = 10
                     # compute post decision function
                     # post_decision.compute_wq etc.
 
@@ -135,3 +135,5 @@ class model_class():
                     # Solve adjuster (code in NVFI file)
                     # nvfi.solve_adj(input)
 
+    # CHECK HOW THE HOUSEHOLD MAX OVER ADJ AND KEEP
+    # Add purchase prices
