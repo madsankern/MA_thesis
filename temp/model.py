@@ -78,6 +78,7 @@ class model_class():
         # States
         par.grid_m = nonlinspace(0, par.m_max, par.Nm, 1.1)
         par.grid_x = nonlinspace(0, par.x_max, par.Nx, 1.1)
+        # need grid for income states (markov)
 
         # Post decision state
         par.grid_a = nonlinspace(0,par.a_max, par.Na, 1.1)

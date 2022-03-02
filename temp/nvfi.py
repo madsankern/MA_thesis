@@ -14,67 +14,67 @@ import utility
 # keep #
 ########
 
-@njit
-def obj_keep(c,n,m,inv_w,grid_a,d_ubar,alpha,rho):
-    """ evaluate bellman equation """
+# @njit
+# def obj_keep(c,n,m,inv_w,grid_a,d_ubar,alpha,rho):
+#     """ evaluate bellman equation """
 
-    # a. end-of-period assets
-    a = m-c
+#     # a. end-of-period assets
+#     a = m-c
     
-    # b. continuation value
-    w = -1.0/linear_interp.interp_1d(grid_a,inv_w,a)
+#     # b. continuation value
+#     w = -1.0/linear_interp.interp_1d(grid_a,inv_w,a)
 
-    # c. total value
-    value_of_choice = utility.func_nopar(c,n,d_ubar,alpha,rho) + w
+#     # c. total value
+#     value_of_choice = utility.func_nopar(c,n,d_ubar,alpha,rho) + w
 
-    return -value_of_choice # we are minimizing
+#     return -value_of_choice # we are minimizing
 
 
-@njit(parallel=True)
-def solve_keep(t,sol,par):
-    """solve bellman equation for keepers using nvfi"""
+# @njit(parallel=True)
+# def solve_keep(t,sol,par):
+#     """solve bellman equation for keepers using nvfi"""
 
-    # unpack output
-    inv_v = sol.inv_v_keep[t]
-    inv_marg_u = sol.inv_marg_u_keep[t]
-    c = sol.c_keep[t]
+#     # unpack output
+#     inv_v = sol.inv_v_keep[t]
+#     inv_marg_u = sol.inv_marg_u_keep[t]
+#     c = sol.c_keep[t]
 
-    # unpack input
-    inv_w = sol.inv_w[t]
-    grid_a = par.grid_a
-    d_ubar = par.d_ubar
-    alpha = par.alpha
-    rho = par.rho
+#     # unpack input
+#     inv_w = sol.inv_w[t]
+#     grid_a = par.grid_a
+#     d_ubar = par.d_ubar
+#     alpha = par.alpha
+#     rho = par.rho
 
-    # loop over outer states
-    for i_p in prange(par.Np):
-        for i_n in range(par.Nn):
+#     # loop over outer states
+#     for i_p in prange(par.Np):
+#         for i_n in range(par.Nn):
             
-            # outer states
-            n = par.grid_n[i_n]
+#             # outer states
+#             n = par.grid_n[i_n]
 
-            # loop over m state
-            for i_m in range(par.Nm):
+#             # loop over m state
+#             for i_m in range(par.Nm):
                 
-                # a. cash-on-hand
-                m = par.grid_m[i_m]
-                if i_m == 0:
-                    c[i_p,i_n,i_m] = 0
-                    inv_v[i_p,i_n,i_m] = 0
-                    if par.do_marg_u:
-                        inv_marg_u[i_p,i_n,i_m] = 0        
-                    continue
+#                 # a. cash-on-hand
+#                 m = par.grid_m[i_m]
+#                 if i_m == 0:
+#                     c[i_p,i_n,i_m] = 0
+#                     inv_v[i_p,i_n,i_m] = 0
+#                     if par.do_marg_u:
+#                         inv_marg_u[i_p,i_n,i_m] = 0        
+#                     continue
 
-                # b. optimal choice
-                c_low = np.fmin(m/2,1e-8)
-                c_high = m
-                c[i_p,i_n,i_m] = golden_section_search.optimizer(obj_keep,c_low,c_high,args=(n,m,inv_w[i_p,i_n],grid_a,d_ubar,alpha,rho),tol=par.tol)
+#                 # b. optimal choice
+#                 c_low = np.fmin(m/2,1e-8)
+#                 c_high = m
+#                 c[i_p,i_n,i_m] = golden_section_search.optimizer(obj_keep,c_low,c_high,args=(n,m,inv_w[i_p,i_n],grid_a,d_ubar,alpha,rho),tol=par.tol)
 
-                # c. optimal value
-                v = -obj_keep(c[i_p,i_n,i_m],n,m,inv_w[i_p,i_n],grid_a,d_ubar,alpha,rho)
-                inv_v[i_p,i_n,i_m] = -1/v
-                if par.do_marg_u:
-                    inv_marg_u[i_p,i_n,i_m] = 1/utility.marg_func_nopar(c[i_p,i_n,i_m],n,d_ubar,alpha,rho)
+#                 # c. optimal value
+#                 v = -obj_keep(c[i_p,i_n,i_m],n,m,inv_w[i_p,i_n],grid_a,d_ubar,alpha,rho)
+#                 inv_v[i_p,i_n,i_m] = -1/v
+#                 if par.do_marg_u:
+#                     inv_marg_u[i_p,i_n,i_m] = 1/utility.marg_func_nopar(c[i_p,i_n,i_m],n,d_ubar,alpha,rho)
 
 #######
 # adj #
