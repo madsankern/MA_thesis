@@ -44,9 +44,10 @@ class model_class():
         par.delta = 0.01 # Maintenance cost
         par.p = 2.0 # House price
         # Parameters for the markov income process
+        par.y = 0.5 # one income level for now
 
         # Horizon - this is removed later
-        par.T
+        par.T = 5
 
         # Grid settings
         par.Nh = 10 # Number of house sizes
@@ -78,7 +79,7 @@ class model_class():
         # States
         par.grid_m = nonlinspace(0, par.m_max, par.Nm, 1.1)
         par.grid_x = nonlinspace(0, par.x_max, par.Nx, 1.1)
-        # need grid for income states (markov)
+        # need grid for income states (markov) - just an array rather than grid
 
         # Post decision state
         par.grid_a = nonlinspace(0,par.a_max, par.Na, 1.1)

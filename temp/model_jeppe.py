@@ -109,7 +109,7 @@ class DurableConsumptionModelClass(ModelClass):
         par.sigma_xi = 0.1
         par.Nxi = 5
         par.pi = 0.0 # What is this?
-        par.mu = 0.5
+        par.mu = 0.5 # what is this?
         
         # grids
         par.Np = 50
