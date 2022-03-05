@@ -58,35 +58,6 @@ class DurableConsumptionModelClass(ModelClass):
         self.not_floats = ['solmethod','T','t','simN','sim_seed','cppthreads',
                            'Npsi','Nxi','Nm','Np','Nn','Nx','Na','Nshocks',
                            'do_2d','do_print','do_print_period','do_marg_u','do_simple_wq']
-        
-        # e. cpp
-        # self.cpp_filename = 'cppfuncs/main.cpp'
-        # self.cpp_options = {'compiler':'vs'}
-
-        # # help for linting
-        # self.cpp.compute_wq_nvfi = None
-        # self.cpp.compute_wq_nvfi_2d = None
-        # self.cpp.compute_wq_negm = None
-        # self.cpp.compute_wq_negm_2d = None
-
-        # self.cpp.solve_vfi_keep = None
-        # self.cpp.solve_vfi_adj = None
-        
-        # self.cpp.solve_vfi_2d_keep = None
-        # self.cpp.solve_vfi_2d_adj_full = None
-        # self.cpp.solve_vfi_2d_adj_d1 = None
-        # self.cpp.solve_vfi_2d_adj_d2 = None
-
-        # self.cpp.solve_nvfi_keep = None
-        # self.cpp.solve_nvfi_adj = None
-        
-        # self.cpp.solve_nvfi_2d_keep = None
-        # self.cpp.solve_nvfi_2d_adj_full = None
-        # self.cpp.solve_nvfi_2d_adj_d1 = None
-        # self.cpp.solve_nvfi_2d_adj_d2 = None
-
-        # self.cpp.solve_negm_keep = None
-        # self.cpp.solve_negm_2d_keep = None
 
     def setup(self):
         """ set baseline parameters """
@@ -104,18 +75,11 @@ class DurableConsumptionModelClass(ModelClass):
         par.rho = 2.0
         par.alpha = 0.9
         par.d_ubar = 1e-2
-        # par.d1_ubar = 1e-2
-        # par.d2_ubar = 1e-2
 
         # returns and income
         par.R = 1.03
         par.tau = 0.10
-        # par.tau1 = 0.08
-        # par.tau2 = 0.12
         par.delta = 0.15
-        # par.delta1 = 0.10
-        # par.delta2 = 0.20
-        # par.gamma = 0.50 # note: the last_period.solve_2d function must be updated if this value is changed
         par.sigma_psi = 0.1
         par.Npsi = 5
         par.sigma_xi = 0.1
@@ -124,7 +88,7 @@ class DurableConsumptionModelClass(ModelClass):
         par.mu = 0.5
         
         # grids
-        par.Np = 2
+        par.Np = 2 #update this
         par.p_min = 0.5
         par.p_max = 2.0
         par.Nn = 50
@@ -168,7 +132,6 @@ class DurableConsumptionModelClass(ModelClass):
         
         par = self.par
 
-        # if par.solmethod in ['negm','negm_cpp','negm_2d_cpp']:
         par.do_marg_u = True
 
         # a. states        
@@ -194,8 +157,6 @@ class DurableConsumptionModelClass(ModelClass):
         par.time_keep = np.zeros(par.T)
         par.time_adj = np.zeros(par.T)
         par.time_adj_full = np.zeros(par.T)
-        # par.time_adj_d1 = np.zeros(par.T)
-        # par.time_adj_d2 = np.zeros(par.T)
 
     def checksum(self,simple=False,T=1):
         """ calculate and print checksum """
@@ -302,59 +263,22 @@ class DurableConsumptionModelClass(ModelClass):
 
         # a. standard
         if not par.do_2d: keep_shape = (par.T,par.Np,par.Nn,par.Nm)
-        # else: keep_shape = (0,0,0,0)
         
         sol.c_keep = np.zeros(keep_shape)
         sol.inv_v_keep = np.zeros(keep_shape)
         sol.inv_marg_u_keep = np.zeros(keep_shape)
 
         if not par.do_2d: adj_shape = (par.T,par.Np,par.Nx)
-        # else: adj_shape = (0,0,0)
         sol.d_adj = np.zeros(adj_shape)
         sol.c_adj = np.zeros(adj_shape)
         sol.inv_v_adj = np.zeros(adj_shape)
         sol.inv_marg_u_adj = np.zeros(adj_shape)
             
         if not par.do_2d: post_shape = (par.T-1,par.Np,par.Nn,par.Na)
-        # else: post_shape = (0,0,0,0)
         sol.inv_w = np.nan*np.zeros(post_shape)
         sol.q = np.nan*np.zeros(post_shape)
         sol.q_c = np.nan*np.zeros(post_shape)
         sol.q_m = np.nan*np.zeros(post_shape)
-
-        # # b. 2d
-        # if par.do_2d: keep_shape = (par.T,par.Np,par.Nn,par.Nn,par.Nm)
-        # else: keep_shape = (0,0,0,0,0)
-        # sol.c_keep_2d = np.zeros(keep_shape)
-        # sol.inv_v_keep_2d = np.zeros(keep_shape)
-        # sol.inv_marg_u_keep_2d = np.zeros(keep_shape)
-
-        # if par.do_2d: adj_full_shape = (par.T,par.Np,par.Nx)
-        # else: adj_full_shape = (0,0,0)
-        # sol.d1_adj_full_2d = np.zeros(adj_full_shape)
-        # sol.d2_adj_full_2d = np.zeros(adj_full_shape)
-        # sol.c_adj_full_2d = np.zeros(adj_full_shape)
-        # sol.inv_v_adj_full_2d = np.zeros(adj_full_shape)
-        # sol.inv_marg_u_adj_full_2d = np.zeros(adj_full_shape)
-        
-        # if par.do_2d: adj_part_shape = (par.T,par.Np,par.Nn,par.Nx)
-        # else: adj_part_shape = (0,0,0,0)
-        # sol.d1_adj_d1_2d = np.zeros(adj_part_shape)
-        # sol.c_adj_d1_2d = np.zeros(adj_part_shape)
-        # sol.inv_v_adj_d1_2d = np.zeros(adj_part_shape)
-        # sol.inv_marg_u_adj_d1_2d = np.zeros(adj_part_shape)
-
-        # sol.d2_adj_d2_2d = np.zeros(adj_part_shape)
-        # sol.c_adj_d2_2d = np.zeros(adj_part_shape)
-        # sol.inv_v_adj_d2_2d = np.zeros(adj_part_shape)
-        # sol.inv_marg_u_adj_d2_2d = np.zeros(adj_part_shape)
-
-        # if par.do_2d: post_shape = (par.T-1,par.Np,par.Nn,par.Nn,par.Na)
-        # else: post_shape = (0,0,0,0,0)
-        # sol.inv_w_2d = np.nan*np.zeros(post_shape)
-        # sol.q_2d = np.nan*np.zeros(post_shape)
-        # sol.q_c_2d = np.nan*np.zeros(post_shape)
-        # sol.q_m_2d = np.nan*np.zeros(post_shape)
 
     def solve(self,do_assert=True):
         """ solve the model
@@ -364,9 +288,6 @@ class DurableConsumptionModelClass(ModelClass):
             do_assert (bool,optional): make assertions on the solution
         
         """
-
-        # if self.par.do_2d: return self.solve_2d()
-        # cpp = self.cpp
 
         tic = time.time()
             
@@ -398,40 +319,20 @@ class DurableConsumptionModelClass(ModelClass):
                     # o. compute post-decision functions
                     tic_w = time.time()
 
-                    # if par.solmethod in ['nvfi']:
-                    #     post_decision.compute_wq(t,sol,par)
-                    # elif par.solmethod in ['negm']:
                     post_decision.compute_wq(t,sol,par,compute_q=True)
-                    # elif par.solmethod == 'nvfi_cpp':
-                    #     cpp.compute_wq_nvfi(par,sol)                    
-                    # elif par.solmethod == 'negm_cpp':
-                    #     cpp.compute_wq_negm(par,sol)                    
 
                     toc_w = time.time()
                     par.time_w[t] = toc_w-tic_w
                     if par.do_print:
                         print(f'  w computed in {toc_w-tic_w:.1f} secs')
 
-                    # if do_assert and par.solmethod in ['nvfi','negm']:
                     assert np.all((sol.inv_w[t] > 0) & (np.isnan(sol.inv_w[t]) == False)), t 
-                        # if par.solmethod in ['negm']:                                                       
                     assert np.all((sol.q[t] > 0) & (np.isnan(sol.q[t]) == False)), t
 
                     # oo. solve keeper problem
                     tic_keep = time.time()
-                    
-                    # if par.solmethod == 'vfi':
-                    #     vfi.solve_keep(t,sol,par)
-                    # elif par.solmethod == 'nvfi':                
-                    #     nvfi.solve_keep(t,sol,par)
-                    # elif par.solmethod == 'negm':
+
                     negm.solve_keep(t,sol,par)
-                    # elif par.solmethod == 'vfi_cpp':
-                    #     cpp.solve_vfi_keep(par,sol)
-                    # elif par.solmethod == 'nvfi_cpp':
-                    #     cpp.solve_nvfi_keep(par,sol)
-                    # elif par.solmethod == 'negm_cpp':
-                    #     cpp.solve_negm_keep(par,sol)                                        
 
                     toc_keep = time.time()
                     par.time_keep[t] = toc_keep-tic_keep
@@ -445,14 +346,7 @@ class DurableConsumptionModelClass(ModelClass):
                     # ooo. solve adjuster problem
                     tic_adj = time.time()
                     
-                    # if par.solmethod == 'vfi':
-                    #     vfi.solve_adj(t,sol,par)
-                    # elif par.solmethod in ['nvfi','negm']:
                     nvfi.solve_adj(t,sol,par)                  
-                    # elif par.solmethod == 'vfi_cpp':
-                    #     cpp.solve_vfi_adj(par,sol)  
-                    # elif par.solmethod in ['nvfi_cpp','negm_cpp']:
-                    #     cpp.solve_nvfi_adj(par,sol)  
 
                     toc_adj = time.time()
                     par.time_adj[t] = toc_adj-tic_adj
@@ -469,109 +363,6 @@ class DurableConsumptionModelClass(ModelClass):
                 if par.do_print or par.do_print_period:
                     print(f' t = {t} solved in {toc-tic:.1f} secs')
 
-    # def solve_2d(self):
-    #     """ solve the model """
-
-    #     par = self.par
-    #     sol = self.sol
-    #     cpp = self.cpp
-
-    #     # backwards induction
-    #     for t in reversed(range(par.T)):
-            
-    #         par.t = t
-    #         tic = time.time()
-            
-    #         # i. last period
-    #         if t == par.T-1:
-
-    #             with jit(self) as model:
-    #                 last_period.solve_2d(t,model.sol,model.par)
-
-    #         # ii. all other periods
-    #         else:
-                
-    #             # o. compute post-decision functions
-    #             tic_w = time.time()
-
-    #             if par.solmethod == 'nvfi_2d_cpp':
-    #                 cpp.compute_wq_nvfi_2d(par,sol)                    
-    #             elif par.solmethod == 'negm_2d_cpp':
-    #                 cpp.compute_wq_negm_2d(par,sol)                    
-
-    #             toc_w = time.time()
-    #             par.time_w[t] = toc_w-tic_w
-    #             if par.do_print:
-    #                 print(f'  w computed in {toc_w-tic_w:.1f} secs')
-
-    #             # oo. solve keeper problem
-    #             tic_keep = time.time()
-                
-    #             if par.solmethod == 'vfi_2d_cpp':
-    #                 cpp.solve_vfi_2d_keep(par,sol)
-    #             elif par.solmethod == 'nvfi_2d_cpp':
-    #                 cpp.solve_nvfi_2d_keep(par,sol)
-    #             elif par.solmethod == 'negm_2d_cpp':
-    #                 cpp.solve_negm_2d_keep(par,sol)
-
-    #             toc_keep = time.time()
-    #             par.time_keep[t] = toc_keep-tic_keep
-    #             if par.do_print:
-    #                 print(f'  solved keeper problem in {toc_keep-tic_keep:.1f} secs')
-
-    #             # ooo. solve adjuster problems
-    #             tic_adj = time.time()
-                
-    #             if par.solmethod == 'vfi_2d_cpp':
-
-    #                 tic_adj_full = time.time()
-    #                 cpp.solve_vfi_2d_adj_full(par,sol) 
-    #                 par.time_adj_full[t] = time.time()-tic_adj_full
-    #                 if par.do_print:
-    #                     print(f'  solved full adjuster problem {par.time_adj_full[t]:.1f} secs')
-                    
-    #                 tic_adj_d1 = time.time()
-    #                 cpp.solve_vfi_2d_adj_d1(par,sol) 
-    #                 par.time_adj_d1[t] = time.time() - tic_adj_d1
-    #                 if par.do_print:
-    #                     print(f'  solved adjuster problem with free d1 {par.time_adj_d1[t]:.1f} secs')
-
-    #                 tic_adj_d2 = time.time()
-    #                 cpp.solve_vfi_2d_adj_d2(par,sol) 
-    #                 par.time_adj_d2[t] = time.time() - tic_adj_d2
-    #                 if par.do_print:
-    #                     print(f'  solved adjuster problem with free d2 {par.time_adj_d2[t]:.1f} secs')
-
-    #             elif par.solmethod in ['nvfi_2d_cpp','negm_2d_cpp']:
-
-    #                 tic_adj_full = time.time()
-    #                 cpp.solve_nvfi_2d_adj_full(par,sol) 
-    #                 par.time_adj_full[t] = time.time()-tic_adj_full
-    #                 if par.do_print:
-    #                     print(f'  solved full adjuster problem {par.time_adj_full[t]:.1f} secs')
-                    
-    #                 tic_adj_d1 = time.time()
-    #                 cpp.solve_nvfi_2d_adj_d1(par,sol)
-    #                 par.time_adj_d1[t] = time.time() - tic_adj_d1
-    #                 if par.do_print:
-    #                     print(f'  solved adjuster problem with free d1 {par.time_adj_d1[t]:.1f} secs')
-
-    #                 tic_adj_d2 = time.time()
-    #                 cpp.solve_nvfi_2d_adj_d2(par,sol)
-    #                 par.time_adj_d2[t] = time.time() - tic_adj_d2
-    #                 if par.do_print:
-    #                     print(f'  solved adjuster problem with free d2 {par.time_adj_d2[t]:.1f} secs')
-
-    #             toc_adj = time.time()
-    #             par.time_adj[t] = toc_adj-tic_adj
-    #             if par.do_print:
-    #                 print(f'  solved adjuster problems in {toc_adj-tic_adj:.1f} secs')
-
-    #         # iii. print
-    #         toc = time.time()
-    #         if par.do_print or par.do_print_period:
-    #             print(f' t = {t} solved in {toc-tic:.1f} secs')
-
     ############
     # simulate #
     ############
@@ -584,10 +375,7 @@ class DurableConsumptionModelClass(ModelClass):
 
         # a. initial and final
         sim.p0 = np.zeros(par.simN)
-        # if par.do_2d:
-        #     sim.d0 = np.zeros(0) # not used
-        #     sim.d10 = np.zeros(par.simN)
-        #     sim.d20 = np.zeros(par.simN)
+
         # else:
         sim.d0 = np.zeros(par.simN)
         sim.d10 = np.zeros(0) # not used
@@ -600,20 +388,10 @@ class DurableConsumptionModelClass(ModelClass):
         sim_shape = (par.T,par.simN)
         sim.p = np.zeros(sim_shape)
         sim.m = np.zeros(sim_shape)
-        # if par.do_2d:
-        #     sim.n = np.zeros((0,0)) # not used
-        #     sim.n1 = np.zeros(sim_shape)
-        #     sim.n2 = np.zeros(sim_shape)
-        # else:
         sim.n = np.zeros(sim_shape)
         sim.n1 = np.zeros((0,0)) # not used
         sim.n2 = np.zeros((0,0)) # not used 
         sim.discrete = np.zeros(sim_shape,dtype=np.int)
-        # if par.do_2d:
-        #     sim.d = np.zeros((0,0)) # not used
-        #     sim.d1 = np.zeros(sim_shape)
-        #     sim.d2 = np.zeros(sim_shape)
-        # else:
         sim.d = np.zeros(sim_shape)
         sim.d1 = np.zeros((0,0)) # not used
         sim.d2 = np.zeros((0,0)) # not used   
@@ -641,10 +419,6 @@ class DurableConsumptionModelClass(ModelClass):
 
         # a. random shocks
         sim.p0[:] = np.random.lognormal(mean=0,sigma=par.sigma_p0,size=par.simN)
-        # if par.do_2d:
-        #     sim.d10[:] = par.mu_d0/2*np.random.lognormal(mean=0,sigma=par.sigma_d0,size=par.simN)
-        #     sim.d20[:] = par.mu_d0/2*np.random.lognormal(mean=0,sigma=par.sigma_d0,size=par.simN)
-        # else:
         sim.d0[:] = par.mu_d0*np.random.lognormal(mean=0,sigma=par.sigma_d0,size=par.simN)
         sim.a0[:] = par.mu_a0*np.random.lognormal(mean=0,sigma=par.sigma_a0,size=par.simN)
 
