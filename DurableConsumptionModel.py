@@ -125,8 +125,8 @@ class DurableConsumptionModelClass(ModelClass):
         
         # grids
         par.Np = 2
-        par.p_min = 1e-4
-        par.p_max = 3.0
+        par.p_min = 0.5
+        par.p_max = 2.0
         par.Nn = 50
         par.n_max = 3.0
         par.Nm = 100
