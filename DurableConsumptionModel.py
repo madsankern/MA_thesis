@@ -74,12 +74,12 @@ class DurableConsumptionModelClass(ModelClass):
         par.beta = 0.965
         par.rho = 2.0
         par.alpha = 0.9
-        par.d_ubar = 1e-2
+        par.d_ubar = 0.1  # 1e-2
 
         # returns and income
         par.R = 1.03
         par.tau = 0.10
-        par.delta = 0.15
+        par.delta = 0.0 #0.15
         par.sigma_psi = 0.1
         par.Npsi = 5
         par.sigma_xi = 0.1
@@ -88,11 +88,11 @@ class DurableConsumptionModelClass(ModelClass):
         par.mu = 0.5
         
         # grids
-        par.Np = 2 #update this
+        par.Np = 6 # update this
         par.p_min = 0.5
         par.p_max = 2.0
-        par.Nn = 50
-        par.n_max = 3.0
+        par.Nn = 10 # For now set 5 levels of housing
+        par.n_max = 1.0
         par.Nm = 100
         par.m_max = 10.0    
         par.Nx = 100
@@ -136,7 +136,7 @@ class DurableConsumptionModelClass(ModelClass):
 
         # a. states        
         par.grid_p = nonlinspace(par.p_min,par.p_max,par.Np,1.1)
-        par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.1)
+        par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.1) # Grid over housing
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
         
@@ -262,19 +262,19 @@ class DurableConsumptionModelClass(ModelClass):
         sol = self.sol
 
         # a. standard
-        if not par.do_2d: keep_shape = (par.T,par.Np,par.Nn,par.Nm)
+        keep_shape = (par.T,par.Np,par.Nn,par.Nm)
         
         sol.c_keep = np.zeros(keep_shape)
         sol.inv_v_keep = np.zeros(keep_shape)
         sol.inv_marg_u_keep = np.zeros(keep_shape)
 
-        if not par.do_2d: adj_shape = (par.T,par.Np,par.Nx)
+        adj_shape = (par.T,par.Np,par.Nx)
         sol.d_adj = np.zeros(adj_shape)
         sol.c_adj = np.zeros(adj_shape)
         sol.inv_v_adj = np.zeros(adj_shape)
         sol.inv_marg_u_adj = np.zeros(adj_shape)
             
-        if not par.do_2d: post_shape = (par.T-1,par.Np,par.Nn,par.Na)
+        post_shape = (par.T-1,par.Np,par.Nn,par.Na)
         sol.inv_w = np.nan*np.zeros(post_shape)
         sol.q = np.nan*np.zeros(post_shape)
         sol.q_c = np.nan*np.zeros(post_shape)
