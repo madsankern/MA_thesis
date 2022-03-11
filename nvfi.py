@@ -75,17 +75,18 @@ def solve_adj(t,sol,par):
             
         # loop over x state
         for i_x in range(par.Nx):
-            
-            # a. cash-on-hand
-            x = par.grid_x[i_x]
-            # if i_x == 0:
-            #     d[i_p,i_x] = 0
-            #     c[i_p,i_x] = 0
-            #     inv_v[i_p,i_x] = 0
-            #     if par.do_marg_u:
-            #         inv_marg_u[i_p,i_x] = 0        
-            #     continue
 
+             
+            # a. cash-on-hand - this is fine
+            x = par.grid_x[i_x]
+            if i_x == 0:
+                d[i_p,i_x] = 0
+                c[i_p,i_x] = 0
+                inv_v[i_p,i_x] = 0
+                if par.do_marg_u:
+                    inv_marg_u[i_p,i_x] = 0        
+                continue
+            # print(d[i_p,i_x])
             # b. optimal choice
 
             # d_low = np.fmin(x/2,1e-8)
@@ -93,19 +94,20 @@ def solve_adj(t,sol,par):
             # d[i_p,i_x] = golden_section_search.optimizer(obj_adj,d_low,d_high,args=(x,inv_v_keep[i_p],grid_n,grid_m),tol=par.tol)
             
             d_allow = par.grid_n[par.grid_n <= x]
-            print(d_allow)
+            # d_allow = np.where(par.grid_n <= x)
+            # print(d_allow)
             value_of_choice = np.empty(len(d_allow))
 
-            for i_d,d in enumerate(d_allow): # vectorize this loop!
+            for i_d,house in enumerate(d_allow): # vectorize this loop!
                 
-                m = x - d # cash on hand after choosing the durable
+                m = x - house # cash on hand after choosing the durable
 
-                value_of_choice[i_d] = interpolate.interp1d(m,inv_v_keep[i_p,i_d,:]) # Find value of choice by interpolation over inv_v_keep
+                value_of_choice[i_d] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_p,i_d,:],m) # Find value of choice by interpolation over inv_v_keep
             
-            print(value_of_choice)
-            
-            d[i_p,i_x] = d_allow[np.argmax(value_of_choice)] #- written as a max now!
-            print(d[i_p,i_x])
+            i_opt = np.argmax(value_of_choice) # convert to integer
+            d_opt = d_allow[i_opt]
+
+            d[i_p,i_x] = d_opt # this is where the problem is!
 
             
             # c. optimal value

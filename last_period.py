@@ -73,15 +73,12 @@ def solve(t,sol,par):
             # d_adj[i_p,i_x] = golden_section_search.optimizer(obj_last_period,d_low,d_high,args=(x,par),tol=par.tol)
 
             d_allow = par.grid_n[par.grid_n <= x]
-            # print(d_allow)
             value_of_choice = np.empty(len(d_allow))
             for i_d,d in enumerate(d_allow): # vectorize this loop!
                 c = x - d
                 value_of_choice[i_d] = utility.func(c,d,par)
-            # print(value_of_choice)
-            d_adj[i_p,i_x] = d_allow[np.argmax(value_of_choice)] #- written as a max now!
-            # print(d_adj[i_p,i_x])
             
+            d_adj[i_p,i_x] = d_allow[np.argmax(value_of_choice)] #- written as a max now!
             c_adj[i_p,i_x] = x-d_adj[i_p,i_x]
 
             # iii. optimal value
