@@ -13,7 +13,7 @@ def obj_last_period(d,x,par):
     """ objective function in last period """
     
     # implied consumption (rest)
-    c = x-d
+    c = x - par.ph*d
 
     return -utility.func(c,d,par)
 
@@ -68,18 +68,15 @@ def solve(t,sol,par):
                 continue
 
             # ii. optimal choices
-            # d_low = np.fmin(x/2,1e-8)
-            # d_high = np.fmin(x,par.n_max)            
-            # d_adj[i_p,i_x] = golden_section_search.optimizer(obj_last_period,d_low,d_high,args=(x,par),tol=par.tol)
-
-            d_allow = par.grid_n[par.grid_n <= x]
+            d_allow = par.grid_n[par.grid_n <= x/par.ph]
             value_of_choice = np.empty(len(d_allow))
+            
             for i_d,d in enumerate(d_allow): # vectorize this loop! , and rename d
-                c = x - d
+                c = x - par.ph*d
                 value_of_choice[i_d] = utility.func(c,d,par)
             
-            d_adj[i_p,i_x] = d_allow[np.argmax(value_of_choice)] #- written as a max now!
-            c_adj[i_p,i_x] = x-d_adj[i_p,i_x]
+            d_adj[i_p,i_x] = d_allow[np.argmax(value_of_choice)] # written as a max now!
+            c_adj[i_p,i_x] = x - par.ph*d_adj[i_p,i_x]
 
             # iii. optimal value
             v_adj = -obj_last_period(d_adj[i_p,i_x],x,par)

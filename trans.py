@@ -26,6 +26,6 @@ def m_plus_func(a,p_plus,xi_plus,par,n):
 # Cash when adjusting
 @njit(fastmath=True)
 def x_plus_func(m_plus,n_plus,par):
-    return m_plus + (1-par.tau)*n_plus # Remove adjustment cost?
+    return m_plus + (1-par.tau)*par.ph*n_plus # Remove adjustment cost?
 
 # Add p_buy lom here

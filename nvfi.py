@@ -14,35 +14,12 @@ import utility
 # adj #
 #######
 
-# # Mads' test of generating objective
-# @njit
-# def obj_adj(x,inv_v_keep,grid_n,grid_m):
-#     """ evaluate bellman equation """
-#     # Vectorize!
-
-#     # Initialize
-#     value_of_choice = np.empty(shape=len(grid_n))
-
-#     # Loop over housing values
-#     for i_n,d in enumerate(grid_n):
-
-#         # Cash on hand
-#         m = x - d
-
-#         # Durable hosing
-#         n = d
-
-#         # Compute value of choice
-#         value_of_choice[i_n] = - linear_interp.interp_2d(grid_n,grid_m,inv_v_keep,n,m)
-
-#     return value_of_choice
-
 @njit
-def obj_adj(d,x,inv_v_keep,grid_n,grid_m):
+def obj_adj(d,x,inv_v_keep,grid_n,grid_m,par):
     """ evaluate bellman equation """
 
     # a. cash-on-hand
-    m = x-d
+    m = x - par.ph*d
 
     # b. durables
     n = d
@@ -75,7 +52,6 @@ def solve_adj(t,sol,par):
             
         # loop over x state
         for i_x in range(par.Nx):
-
              
             # a. cash-on-hand - this is fine
             x = par.grid_x[i_x]
@@ -86,33 +62,23 @@ def solve_adj(t,sol,par):
                 if par.do_marg_u:
                     inv_marg_u[i_p,i_x] = 0        
                 continue
-            # print(d[i_p,i_x])
-            # b. optimal choice
 
-            # d_low = np.fmin(x/2,1e-8)
-            # d_high = np.fmin(x,par.n_max)
-            # d[i_p,i_x] = golden_section_search.optimizer(obj_adj,d_low,d_high,args=(x,inv_v_keep[i_p],grid_n,grid_m),tol=par.tol)
-            
-            d_allow = par.grid_n[par.grid_n <= x]
-            # d_allow = np.where(par.grid_n <= x)
-            # print(d_allow)
-            value_of_choice = np.empty(len(d_allow))
+            # b. optimal choice
+            d_allow = par.grid_n[par.grid_n <= x / par.ph] # House sizes that can be afforded
+            value_of_choice = np.empty(len(d_allow)) # Initialize
 
             for i_d,house in enumerate(d_allow): # vectorize this loop!
                 
-                m = x - house # cash on hand after choosing the durable
-
-                value_of_choice[i_d] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_p,i_d,:],m) # Find value of choice by interpolation over inv_v_keep
+                m_i = x - par.ph*house # cash on hand after choosing the durable
+                value_of_choice[i_d] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_p,i_d,:],m_i) # Find value of choice by interpolation over inv_v_keep
             
             i_opt = np.argmax(value_of_choice) # convert to integer
             d_opt = d_allow[i_opt]
+            d[i_p,i_x] = d_opt # These can be combined
 
-            d[i_p,i_x] = d_opt # this is where the problem is!
-
-            
             # c. optimal value
-            m = x - d[i_p,i_x]
+            m = x - par.ph*d[i_p,i_x]
             c[i_p,i_x] = linear_interp.interp_2d(par.grid_n,par.grid_m,c_keep[i_p],d[i_p,i_x],m)
-            inv_v[i_p,i_x] = -obj_adj(d[i_p,i_x],x,inv_v_keep[i_p],grid_n,grid_m) # This has to be corrected as well
-            if par.do_marg_u:
+            inv_v[i_p,i_x] = -obj_adj(d[i_p,i_x],x,inv_v_keep[i_p],grid_n,grid_m,par) # This has to be corrected as well
+            if par.do_marg_u: # This is always the case when using negm
                 inv_marg_u[i_p,i_x] = 1/utility.marg_func_nopar(c[i_p,i_x],d[i_p,i_x],d_ubar,alpha,rho)
