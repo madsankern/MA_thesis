@@ -12,11 +12,11 @@ def p_plus_func(p,psi,par):
 # Durable
 @njit(fastmath=True)
 def n_plus_func(d,par):
-    n_plus = (1-par.delta)*d
+    n_plus = d # no depreciation
     n_plus = np.fmin(n_plus,par.n_max) # upper bound
     return n_plus
 
-# Cash
+# Cash - add maintenence cost
 @njit(fastmath=True)
 def m_plus_func(a,p_plus,xi_plus,par):
     y_plus = p_plus*xi_plus

@@ -74,7 +74,7 @@ def solve(t,sol,par):
 
             d_allow = par.grid_n[par.grid_n <= x]
             value_of_choice = np.empty(len(d_allow))
-            for i_d,d in enumerate(d_allow): # vectorize this loop!
+            for i_d,d in enumerate(d_allow): # vectorize this loop! , and rename d
                 c = x - d
                 value_of_choice[i_d] = utility.func(c,d,par)
             
