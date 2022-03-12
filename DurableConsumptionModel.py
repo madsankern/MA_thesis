@@ -79,7 +79,6 @@ class DurableConsumptionModelClass(ModelClass):
         # returns and income
         par.R = 1.03
         par.tau = 0.10
-        # par.delta = 0.0 # depreciation. Should be removed
         par.deltaa = 0.15 # House maintenence cost
         par.sigma_psi = 0.1
         par.Npsi = 5
@@ -87,6 +86,7 @@ class DurableConsumptionModelClass(ModelClass):
         par.Nxi = 5
         par.pi = 0.0
         par.mu = 0.5
+        par.ph = 2.0 # House price
         
         # grids
         par.Np = 6 # update this
