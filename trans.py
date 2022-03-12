@@ -3,7 +3,7 @@ from numba import njit
 
 # Income process
 @njit(fastmath=True)
-def p_plus_func(p,psi,par):
+def p_plus_func(p,psi,par): # LOM for permanent income. Modelled as a Random walk
     p_plus = p*psi
     p_plus = np.fmax(p_plus,par.p_min) # lower bound
     p_plus = np.fmin(p_plus,par.p_max) # upper bound
@@ -18,9 +18,9 @@ def n_plus_func(d,par):
 
 # Cash - add maintenence cost
 @njit(fastmath=True)
-def m_plus_func(a,p_plus,xi_plus,par,n):
-    y_plus = p_plus*xi_plus
-    m_plus = par.R*a+ y_plus - par.deltaa*n
+def m_plus_func(a,p_plus,par,n):
+    y_plus = p_plus # Removed xi_plus
+    m_plus = par.R*a + y_plus - par.deltaa*n
     return m_plus
 
 # Cash when adjusting

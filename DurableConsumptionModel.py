@@ -21,7 +21,7 @@ import numpy as np
 # consav package
 from consav import ModelClass, jit # baseline model class and jit
 from consav import linear_interp # for linear interpolation
-from consav import golden_section_search # for optimization in 1D
+from consav import golden_section_search # for optimization in 1D, CAN BE REMOVED
 from consav.grids import nonlinspace # grids
 from consav.quadrature import create_PT_shocks # income shocks
 
@@ -88,8 +88,14 @@ class DurableConsumptionModelClass(ModelClass):
         par.mu = 0.5
         par.ph = 2.0 # House price
         
+        par.p_12 = 1/3 # Transition probability
+        par.p_21 = 1/3
+        par.P = np.array([  # Stochastic matrix for income
+            [1-par.p_12, par.p_12], 
+            [par.p_21, 1-par.p_21]])
+
         # grids
-        par.Np = 6 # update this
+        par.Np = 2 #6 # update this
         par.p_min = 0.5
         par.p_max = 2.0
         par.Nn = 10 # For now set 5 levels of housing
@@ -135,17 +141,18 @@ class DurableConsumptionModelClass(ModelClass):
 
         par.do_marg_u = True
 
-        # a. states        
-        par.grid_p = nonlinspace(par.p_min,par.p_max,par.Np,1.1)
-        par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.1) # Grid over housing
+        # a. states
+        par.grid_p = np.array([0.7,1.8]) # State values of income markov process
+        # par.grid_p = nonlinspace(par.p_min,par.p_max,par.Np,1.1)
+        par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.1) # Grid over housing, can be nonlinspace
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
         
         # b. post-decision states
         par.grid_a = nonlinspace(0,par.a_max,par.Na,1.1)
         
-        # c. shocks
-        shocks = create_PT_shocks(
+        # c. shocks - generate Markov income from AR(1) process here
+        shocks = create_PT_shocks( # Can be removed
             par.sigma_psi,par.Npsi,par.sigma_xi,par.Nxi,
             par.pi,par.mu)
         par.psi,par.psi_w,par.xi,par.xi_w,par.Nshocks = shocks
@@ -166,7 +173,7 @@ class DurableConsumptionModelClass(ModelClass):
         sol = self.sol
 
         if simple:
-            if par.do_2d:
+            if par.do_2d: # Can remove this
                 print(f'checksum, inv_v_keep: {np.mean(sol.inv_v_keep_2d[0]):.8f}')
                 print(f'checksum, inv_v_adj_full: {np.mean(sol.inv_v_adj_full_2d[0]):.8f}')
                 print(f'checksum, inv_v_adj_d1_2d: {np.mean(sol.inv_v_adj_d1_2d[0]):.8f}')
@@ -178,7 +185,7 @@ class DurableConsumptionModelClass(ModelClass):
 
         print('')
         for t in range(T):
-            if par.do_2d:
+            if par.do_2d: # Remove this
                 
                 if t < par.T-1:
                     print(f'checksum, inv_w: {np.mean(sol.inv_w_2d[t]):.8f}')
@@ -249,7 +256,7 @@ class DurableConsumptionModelClass(ModelClass):
         # e. reiterate
         for key,val in fastpar.items():
             setattr(par,key,val)
-        
+
         self.allocate()
 
         toc = time.time()
@@ -280,6 +287,7 @@ class DurableConsumptionModelClass(ModelClass):
         sol.q = np.nan*np.zeros(post_shape)
         sol.q_c = np.nan*np.zeros(post_shape)
         sol.q_m = np.nan*np.zeros(post_shape)
+        # print(post_shape)
 
     def solve(self,do_assert=True):
         """ solve the model
@@ -319,7 +327,7 @@ class DurableConsumptionModelClass(ModelClass):
                     
                     # o. compute post-decision functions
                     tic_w = time.time()
-
+                    
                     post_decision.compute_wq(t,sol,par,compute_q=True)
 
                     toc_w = time.time()
