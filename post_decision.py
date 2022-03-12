@@ -29,19 +29,19 @@ def compute_wq(t,sol,par,compute_q=False):
         inv_marg_u_adj_plus = np.zeros(par.Na)
         
         # loop over other outer post-decision states
-        for i_n in range(par.Nn):
+        for i_n in range(par.Nn): # Loop over state of durables
 
             # a. permanent income and durable stock
             p = par.grid_p[i_p]
             n = par.grid_n[i_n]
 
-            # b. initialize at zero
+            # b. initialize at zero - why is this necessary?
             for i_a in range(par.Na):
                 w[i_a] = 0.0
                 q[i_p,i_n,i_a] = 0.0
 
             # c. loop over shocks and then end-of-period assets
-            for ishock in range(par.Nshocks):
+            for ishock in range(par.Nshocks): # Loop over all shocks to income, weight each shock by probability to compute expectation 
                 
                 # i. shocks
                 psi_plus = par.psi[ishock]
@@ -53,31 +53,32 @@ def compute_wq(t,sol,par,compute_q=False):
                 p_plus = trans.p_plus_func(p,psi_plus,par)
                 n_plus = trans.n_plus_func(n,par)
 
-                # iii. prepare interpolators
+                # iii. prepare interpolators - what is this for?
                 prep_keep = linear_interp.interp_3d_prep(par.grid_p,par.grid_n,p_plus,n_plus,par.Na)
                 prep_adj = linear_interp.interp_2d_prep(par.grid_p,p_plus,par.Na)
+                # Note the dimension
 
-                # iv. weight
+                # iv. weight of each income shock
                 weight = psi_plus_w*xi_plus_w
 
                 # v. next-period cash-on-hand and total resources
                 for i_a in range(par.Na):
         
-                    m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],p_plus,xi_plus,par)
-                    x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,par)
+                    m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],p_plus,xi_plus,par,n) #update this with maintence costs
+                    x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,par) # No need to update this
                 
                 # vi. interpolate
                 linear_interp.interp_3d_only_last_vec_mon(prep_keep,par.grid_p,par.grid_n,par.grid_m,sol.inv_v_keep[t+1],p_plus,n_plus,m_plus,inv_v_keep_plus)
                 linear_interp.interp_2d_only_last_vec_mon(prep_adj,par.grid_p,par.grid_x,sol.inv_v_adj[t+1],p_plus,x_plus,inv_v_adj_plus)
-                if compute_q:
+                if compute_q: # check this
                     linear_interp.interp_3d_only_last_vec_mon_rep(prep_keep,par.grid_p,par.grid_n,par.grid_m,sol.inv_marg_u_keep[t+1],p_plus,n_plus,m_plus,inv_marg_u_keep_plus)
                     linear_interp.interp_2d_only_last_vec_mon_rep(prep_adj,par.grid_p,par.grid_x,sol.inv_marg_u_adj[t+1],p_plus,x_plus,inv_marg_u_adj_plus)
                      
-                # vii. max and accumulate
+                # vii. max and accumulate.
                 if compute_q:
 
                     for i_a in range(par.Na):                                
-
+                        # Max over the keeper and adjuster problem
                         keep = inv_v_keep_plus[i_a] > inv_v_adj_plus[i_a]
                         if keep:
                             v_plus = -1/inv_v_keep_plus[i_a]
@@ -85,15 +86,15 @@ def compute_wq(t,sol,par,compute_q=False):
                         else:
                             v_plus = -1/inv_v_adj_plus[i_a]
                             marg_u_plus = 1/inv_marg_u_adj_plus[i_a]
-
+                        # Weight by probabilities
                         w[i_a] += weight*par.beta*v_plus
                         q[i_p,i_n,i_a] += weight*par.beta*par.R*marg_u_plus
 
                 else:
-
+                    # This can be deleted, I think
                     for i_a in range(par.Na):
                         w[i_a] += weight*par.beta*(-1.0/np.fmax(inv_v_keep_plus[i_a],inv_v_adj_plus[i_a]))
         
             # d. transform post decision value function
             for i_a in range(par.Na):
-                inv_w[i_p,i_n,i_a] = -1/w[i_a]
+                inv_w[i_p,i_n,i_a] = -1/w[i_a] # Transform to inverse for computations

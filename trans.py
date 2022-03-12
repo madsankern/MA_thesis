@@ -18,12 +18,14 @@ def n_plus_func(d,par):
 
 # Cash - add maintenence cost
 @njit(fastmath=True)
-def m_plus_func(a,p_plus,xi_plus,par):
+def m_plus_func(a,p_plus,xi_plus,par,n):
     y_plus = p_plus*xi_plus
-    m_plus = par.R*a+ y_plus
+    m_plus = par.R*a+ y_plus - par.deltaa*n
     return m_plus
 
 # Cash when adjusting
 @njit(fastmath=True)
 def x_plus_func(m_plus,n_plus,par):
-    return m_plus + (1-par.tau)*n_plus
+    return m_plus + (1-par.tau)*n_plus # Remove adjustment cost?
+
+# Add p_buy lom here
