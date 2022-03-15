@@ -84,13 +84,16 @@ class DurableConsumptionModelClass(ModelClass):
         par.Npsi = 5
         par.sigma_xi = 0.1
         par.Nxi = 5
-        par.pi = 0.0
-        par.mu = 0.5
+        par.pi = 0.0 # what is this
+        par.mu = 0.5 # what is this
         par.ph = 2.0 # House price
-        
-        par.p_12 = 1/3 # Transition probability
-        par.p_21 = 1/3
-        par.P = np.array([  # Stochastic matrix for income
+
+
+
+        # Markov process stuff
+        par.p_12 = 0.33 # Transition probability
+        par.p_21 = 0.33
+        par.p_mat = np.array([  # Stochastic matrix for income
             [1-par.p_12, par.p_12], 
             [par.p_21, 1-par.p_21]])
 
@@ -142,8 +145,8 @@ class DurableConsumptionModelClass(ModelClass):
         par.do_marg_u = True
 
         # a. states
-        par.grid_p = np.array([0.7,1.8]) # State values of income markov process
-        # par.grid_p = nonlinspace(par.p_min,par.p_max,par.Np,1.1)
+        # par.grid_p = np.array([0.7,1.8]) # State values of income markov process
+        par.grid_p = nonlinspace(par.p_min,par.p_max,par.Np,1.1)
         par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.1) # Grid over housing, can be nonlinspace
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
