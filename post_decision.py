@@ -44,7 +44,7 @@ def compute_wq(t,sol,par,compute_q=False):
             for ishock in range(len(par.grid_p)): #in range(par.Nshocks): #    # Loop over all shocks to income, weight each shock by probability to compute expectation 
             # This loop might be avoidable
 
-                # i. shocks - can be removed
+                # i. shocks - can be removed hello
                 # psi_plus = par.psi[ishock]
                 # psi_plus_w = par.psi_w[ishock]
                 # xi_plus = par.xi[ishock]
