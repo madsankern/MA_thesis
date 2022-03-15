@@ -29,38 +29,30 @@ def compute_wq(t,sol,par,compute_q=False):
         inv_marg_u_adj_plus = np.zeros(par.Na)
         
         # loop over other outer post-decision states
-        for i_n in range(par.Nn): # Loop over state of durables
+        for i_n in range(par.Nn):
 
             # a. permanent income and durable stock
             p = par.grid_p[i_p]
             n = par.grid_n[i_n]
 
-            # b. initialize at zero - why is this necessary?
+            # b. initialize at zero - why?
             for i_a in range(par.Na):
                 w[i_a] = 0.0
                 q[i_p,i_n,i_a] = 0.0
 
-            # c. loop over shocks and then end-of-period assets
-            for ishock in range(len(par.grid_p)): #in range(par.Nshocks): #    # Loop over all shocks to income, weight each shock by probability to compute expectation 
-            # This loop might be avoidable
-
-                # i. shocks - can be removed hello
-                # psi_plus = par.psi[ishock]
-                # psi_plus_w = par.psi_w[ishock]
-                # xi_plus = par.xi[ishock]
-                # xi_plus_w = par.xi_w[ishock]
+            # c. Loop over income values
+            for ishock in range(len(par.grid_p)):
 
                 # ii. next-period income and durables
-                p_plus = par.grid_p[ishock] #trans.p_plus_func(p,psi_plus,par) # Model for the permament income
+                p_plus = par.grid_p[ishock]
                 n_plus = trans.n_plus_func(n,par)
 
                 # iii. prepare interpolators - what is this for?
                 prep_keep = linear_interp.interp_3d_prep(par.grid_p,par.grid_n,p_plus,n_plus,par.Na)
                 prep_adj = linear_interp.interp_2d_prep(par.grid_p,p_plus,par.Na)
-                # Note the dimension
 
-                # iv. weight of each income shock
-                weight = par.p_mat[i_p,ishock] #1/len(par.grid_p) #par.p_vec([ishock]) #psi_plus_w*xi_plus_w #1.0 / len(par.grid_p) # Add Markov probabilities here.
+                # iv. weight of each income shock by Markov probabilities
+                weight = par.p_mat[i_p,ishock]
 
                 # v. next-period cash-on-hand and total resources
                 for i_a in range(par.Na):
@@ -77,7 +69,6 @@ def compute_wq(t,sol,par,compute_q=False):
                      
                 # vii. max and accumulate.
                 if compute_q:
-
                     for i_a in range(par.Na):                                
                         # Max over the keeper and adjuster problem
                         keep = inv_v_keep_plus[i_a] > inv_v_adj_plus[i_a]
@@ -91,8 +82,7 @@ def compute_wq(t,sol,par,compute_q=False):
                         w[i_a] += weight*par.beta*v_plus
                         q[i_p,i_n,i_a] += weight*par.beta*par.R*marg_u_plus
 
-                else:
-                    # This can be deleted, I think
+                else: # Can be deleted, I think
                     for i_a in range(par.Na):
                         w[i_a] += weight*par.beta*(-1.0/np.fmax(inv_v_keep_plus[i_a],inv_v_adj_plus[i_a]))
         
