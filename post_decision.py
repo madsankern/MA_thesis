@@ -8,9 +8,6 @@ from consav import linear_interp # for linear interpolation
 import utility
 import trans
 
-##############################
-### BACKUP OF ALL THE CODE ###
-##############################
 @njit(parallel=True)
 def compute_wq(t,sol,par,compute_q=False):
     """ compute the post-decision functions w and/or q """

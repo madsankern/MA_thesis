@@ -80,10 +80,10 @@ class DurableConsumptionModelClass(ModelClass):
         par.R = 1.03
         par.tau = 0.10
         par.deltaa = 0.15 # House maintenence cost
-        par.sigma_psi = 0.1
-        par.Npsi = 5
-        par.sigma_xi = 0.1
-        par.Nxi = 5
+        # par.sigma_psi = 0.1
+        # par.Npsi = 5
+        # par.sigma_xi = 0.1
+        # par.Nxi = 5
         par.pi = 0.0 # what is this
         par.mu = 0.5 # what is this
         par.ph = 2.0 # House price
@@ -155,10 +155,10 @@ class DurableConsumptionModelClass(ModelClass):
         par.grid_a = nonlinspace(0,par.a_max,par.Na,1.1)
         
         # c. shocks - generate Markov income from AR(1) process here
-        shocks = create_PT_shocks( # Can be removed
-            par.sigma_psi,par.Npsi,par.sigma_xi,par.Nxi,
-            par.pi,par.mu)
-        par.psi,par.psi_w,par.xi,par.xi_w,par.Nshocks = shocks
+        # shocks = create_PT_shocks( # Can be removed
+        #     par.sigma_psi,par.Npsi,par.sigma_xi,par.Nxi,
+        #     par.pi,par.mu)
+        # par.psi,par.psi_w,par.xi,par.xi_w,par.Nshocks = shocks
 
         # d. set seed
         np.random.seed(par.sim_seed)
