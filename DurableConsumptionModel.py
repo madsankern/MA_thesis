@@ -8,7 +8,7 @@ B. nvfi: nested value function iteration (both in Python and C++)
 C. negm: nested endogenous grid point method (both in Python and C++)
 
 The do_2d switch turns on the extended version with two durable stocks.
-
+UPDATE DOCSTRING
 """
 
 ##############
@@ -95,6 +95,10 @@ class DurableConsumptionModelClass(ModelClass):
         par.Npb = 2 # points in the grid
         par.pb_max = 5.0 # max value
         par.pb_min = 0.1 # min value
+        
+        # Taxes
+        par.tauc = 0.0 # Wealth tax
+        par.taug = 0.0 # Gains tax
 
         # grids - rename p to y
         par.Np = 2 #6 # update this

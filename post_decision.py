@@ -18,6 +18,9 @@ def compute_wq(t,sol,par,compute_q=False):
 
     # Loop over pb
     for i_pb in range(par.Npb):
+        
+        # Purchase price
+        pb = par.grid_pb[i_pb]
 
         # loop over outermost post-decision state
         for i_p in prange(par.Np): # Loop over possible values of y here
@@ -61,7 +64,7 @@ def compute_wq(t,sol,par,compute_q=False):
                     for i_a in range(par.Na):
             
                         m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],p_plus,par,n)
-                        x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,par) # Add pb to the function in trans.py
+                        x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,pb,par) # Add pb to the function in trans.py
                     
                     # vi. interpolate
                     linear_interp.interp_3d_only_last_vec_mon(prep_keep,par.grid_p,par.grid_n,par.grid_m,sol.inv_v_keep[t+1, i_pb],p_plus,n_plus,m_plus,inv_v_keep_plus)

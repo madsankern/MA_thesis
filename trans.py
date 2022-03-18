@@ -12,12 +12,12 @@ def n_plus_func(d,par):
 @njit(fastmath=True)
 def m_plus_func(a,p_plus,par,n):
     y_plus = p_plus
-    m_plus = par.R*a + y_plus - par.deltaa*n
+    m_plus = par.R*a + y_plus - par.deltaa*n - par.tauc*par.ph*n
     return m_plus
 
 # Cash when adjusting
 @njit(fastmath=True)
-def x_plus_func(m_plus,n_plus,par):
-    return m_plus + par.ph*n_plus # Add avancebeskatning here
+def x_plus_func(m_plus,n_plus,pb,par):
+    return m_plus + par.ph*n_plus - par.taug*n_plus*(pb - par.ph)
 
 # Add p_buy lom here
