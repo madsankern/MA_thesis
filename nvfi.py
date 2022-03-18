@@ -48,7 +48,9 @@ def solve_adj(t,sol,par):
     rho = par.rho
 
     # loop over outer states
-    for i_p in range(par.Np): #prange
+    for i_p in prange(par.Np): #prange
+
+        # loop over pb here
             
         # loop over x state
         for i_x in range(par.Nx):
@@ -72,7 +74,7 @@ def solve_adj(t,sol,par):
                 m_i = x - par.ph*house # cash on hand after choosing the durable
                 value_of_choice[i_d] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_p,i_d,:],m_i) # Find value of choice by interpolation over inv_v_keep
             
-            i_opt = np.argmax(value_of_choice) # convert to integer
+            i_opt = np.argmax(value_of_choice) # convert to integer, might not be necessary 
             d_opt = d_allow[i_opt]
             d[i_p,i_x] = d_opt # These can be combined
 

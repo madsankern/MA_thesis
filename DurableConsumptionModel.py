@@ -91,6 +91,11 @@ class DurableConsumptionModelClass(ModelClass):
             [1-par.p_12, par.p_12], 
             [par.p_21, 1-par.p_21]])
 
+        # p_buy
+        par.Npb = 30 # points in the grid
+        par.pb_max = 5.0 # max value
+        par.pb_min = 0.1 # min value
+
         # grids - rename p to y
         par.Np = 2 #6 # update this
         par.p_min = 0.5
@@ -144,6 +149,7 @@ class DurableConsumptionModelClass(ModelClass):
         par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.1) # Grid over housing, can be nonlinspace
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
+        par.grid_pb = nonlinspace(par.pb_min,par.pb_max,par.Npb,1.1) # Grid for house purchase price
         
         # b. post-decision states
         par.grid_a = nonlinspace(0,par.a_max,par.Na,1.1)

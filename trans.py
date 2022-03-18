@@ -18,6 +18,6 @@ def m_plus_func(a,p_plus,par,n):
 # Cash when adjusting
 @njit(fastmath=True)
 def x_plus_func(m_plus,n_plus,par):
-    return m_plus + par.ph*n_plus
+    return m_plus + par.ph*n_plus # Add avancebeskatning here
 
 # Add p_buy lom here

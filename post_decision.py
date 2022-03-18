@@ -32,7 +32,7 @@ def compute_wq(t,sol,par,compute_q=False):
         for i_n in range(par.Nn):
 
             # a. permanent income and durable stock
-            p = par.grid_p[i_p]
+            p = par.grid_p[i_p] # can be removed
             n = par.grid_n[i_n]
 
             # b. initialize at zero - why?
@@ -41,7 +41,7 @@ def compute_wq(t,sol,par,compute_q=False):
                 q[i_p,i_n,i_a] = 0.0
 
             # c. Loop over income values
-            for ishock in range(len(par.grid_p)):
+            for ishock in range(len(par.grid_p)): # rename ishock to something clearer
 
                 # ii. next-period income and durables
                 p_plus = par.grid_p[ishock]
@@ -58,7 +58,7 @@ def compute_wq(t,sol,par,compute_q=False):
                 for i_a in range(par.Na):
         
                     m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],p_plus,par,n)
-                    x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,par) # No need to update this
+                    x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,par) # Will be updated with p_buy
                 
                 # vi. interpolate
                 linear_interp.interp_3d_only_last_vec_mon(prep_keep,par.grid_p,par.grid_n,par.grid_m,sol.inv_v_keep[t+1],p_plus,n_plus,m_plus,inv_v_keep_plus)
