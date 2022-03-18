@@ -92,7 +92,7 @@ class DurableConsumptionModelClass(ModelClass):
             [par.p_21, 1-par.p_21]])
 
         # p_buy
-        par.Npb = 30 # points in the grid
+        par.Npb = 2 # points in the grid
         par.pb_max = 5.0 # max value
         par.pb_min = 0.1 # min value
 
@@ -267,19 +267,19 @@ class DurableConsumptionModelClass(ModelClass):
         sol = self.sol
 
         # a. standard
-        keep_shape = (par.T,par.Np,par.Nn,par.Nm)
+        keep_shape = (par.T,par.Npb,par.Np,par.Nn,par.Nm)
         
         sol.c_keep = np.zeros(keep_shape)
         sol.inv_v_keep = np.zeros(keep_shape)
         sol.inv_marg_u_keep = np.zeros(keep_shape)
 
-        adj_shape = (par.T,par.Np,par.Nx)
+        adj_shape = (par.T,par.Npb,par.Np,par.Nx)
         sol.d_adj = np.zeros(adj_shape)
         sol.c_adj = np.zeros(adj_shape)
         sol.inv_v_adj = np.zeros(adj_shape)
         sol.inv_marg_u_adj = np.zeros(adj_shape)
             
-        post_shape = (par.T-1,par.Np,par.Nn,par.Na)
+        post_shape = (par.T-1,par.Npb,par.Np,par.Nn,par.Na)
         sol.inv_w = np.nan*np.zeros(post_shape)
         sol.q = np.nan*np.zeros(post_shape)
         sol.q_c = np.nan*np.zeros(post_shape)
