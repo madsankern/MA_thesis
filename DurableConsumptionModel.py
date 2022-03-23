@@ -1,14 +1,8 @@
 # -*- coding: utf-8 -*-
 """DurableConsumptionModel
 
-Solves a consumption-saving model with a durable consumption good and non-convex adjustment costs with either:
+Solve a consumption-saving model with a non-durable numeraire and durable housing
 
-A. vfi: value function iteration (only i C++)
-B. nvfi: nested value function iteration (both in Python and C++)
-C. negm: nested endogenous grid point method (both in Python and C++)
-
-The do_2d switch turns on the extended version with two durable stocks.
-UPDATE DOCSTRING
 """
 
 ##############
@@ -21,16 +15,13 @@ import numpy as np
 # consav package
 from consav import ModelClass, jit # baseline model class and jit
 from consav import linear_interp # for linear interpolation
-from consav import golden_section_search # for optimization in 1D, CAN BE REMOVED
 from consav.grids import nonlinspace # grids
-from consav.quadrature import create_PT_shocks # income shocks
 
 # local modules
 import utility
 import trans
 import last_period
 import post_decision
-import vfi
 import nvfi
 import negm
 import simulate
@@ -39,7 +30,7 @@ import figs
 class DurableConsumptionModelClass(ModelClass): # Rename
     
     #########
-    # setup #
+    # Setup #
     #########
     
     def settings(self):
@@ -74,34 +65,33 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.beta = 0.965
         par.rho = 2.0
         par.alpha = 0.9
-        par.d_ubar = 0.1  # Floor under the durable
+        par.d_ubar = 0.1
 
         # returns and income
         par.R = 1.03
         par.tau = 0.10
-        par.deltaa = 0.15 # House maintenence cost
+        par.deltaa = 0.15
         par.pi = 0.0 # what is this
         par.mu = 0.5 # what is this
         par.ph = 2.0 # House price - rename to p
 
         # Markov process stuff
-        par.p_12 = 0.33 # Transition probability
+        par.p_12 = 0.33
         par.p_21 = 0.33
-        par.p_mat = np.array([  # Stochastic matrix for income
+        par.p_mat = np.array([ 
             [1-par.p_12, par.p_12], 
             [par.p_21, 1-par.p_21]])
+        par.p_mat_cum = np.array([np.cumsum(par.p_mat[i,:]) for i in range(2)])
 
-        # More markov stuff - move later
         par.pi = np.array([1/2,1/2]) # stationary distribution
         par.pi_cum = np.array(np.cumsum(par.pi))
-        par.p_mat_cum = np.array([np.cumsum(par.p_mat[i,:]) for i in range(2)])
 
         # p_buy
         par.Npb = 2 # points in the grid
         par.pb_max = 5.0 # max value
         par.pb_min = 0.1 # min value
         
-        # Taxes
+        # taxes
         par.tauc = 0.0 # Wealth tax
         par.taug = 0.0 # Gains tax
 
@@ -153,7 +143,6 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.do_marg_u = True
 
         # a. states
-        # par.grid_p = np.array([0.7,1.8]) # State values of income markov process
         par.grid_p = nonlinspace(par.p_min,par.p_max,par.Np,1.1)
         par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.1) # Grid over housing, can be nonlinspace
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
@@ -179,48 +168,24 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sol = self.sol
 
         if simple:
-            if par.do_2d: # Can remove this
-                print(f'checksum, inv_v_keep: {np.mean(sol.inv_v_keep_2d[0]):.8f}')
-                print(f'checksum, inv_v_adj_full: {np.mean(sol.inv_v_adj_full_2d[0]):.8f}')
-                print(f'checksum, inv_v_adj_d1_2d: {np.mean(sol.inv_v_adj_d1_2d[0]):.8f}')
-                print(f'checksum, inv_v_adj_d2_2d: {np.mean(sol.inv_v_adj_d2_2d[0]):.8f}')
-            else:
-                print(f'checksum, inv_v_keep: {np.mean(sol.inv_v_keep[0]):.8f}')
-                print(f'checksum, inv_v_adj: {np.mean(sol.inv_v_adj[0]):.8f}')
+            print(f'checksum, inv_v_keep: {np.mean(sol.inv_v_keep[0]):.8f}')
+            print(f'checksum, inv_v_adj: {np.mean(sol.inv_v_adj[0]):.8f}')
             return
 
         print('')
         for t in range(T):
-            if par.do_2d: # Remove this
-                
-                if t < par.T-1:
-                    print(f'checksum, inv_w: {np.mean(sol.inv_w_2d[t]):.8f}')
-                    print(f'checksum, q: {np.mean(sol.q_2d[t]):.8f}')
+            if t < par.T-1:
+                print(f'checksum, inv_w: {np.mean(sol.inv_w[t]):.8f}')
+                print(f'checksum, q: {np.mean(sol.q[t]):.8f}')
 
-                print(f'checksum, inv_v_keep: {np.mean(sol.inv_v_keep_2d[t]):.8f}')
-                print(f'checksum, inv_v_adj_full: {np.mean(sol.inv_v_adj_full_2d[t]):.8f}')
-                print(f'checksum, inv_v_adj_d1_2d: {np.mean(sol.inv_v_adj_d1_2d[t]):.8f}')
-                print(f'checksum, inv_v_adj_d2_2d: {np.mean(sol.inv_v_adj_d2_2d[t]):.8f}')
-                print(f'checksum, inv_marg_u_keep: {np.mean(sol.inv_marg_u_keep_2d[t]):.8f}')
-                print(f'checksum, inv_marg_u_adj_full: {np.mean(sol.inv_marg_u_adj_full_2d[t]):.8f}')
-                print(f'checksum, inv_marg_u_adj_d1_2d: {np.mean(sol.inv_marg_u_adj_d1_2d[t]):.8f}')
-                print(f'checksum, inv_marg_u_adj_d2_2d: {np.mean(sol.inv_marg_u_adj_d2_2d[t]):.8f}')                
-                print('')
-
-            else:
-
-                if t < par.T-1:
-                    print(f'checksum, inv_w: {np.mean(sol.inv_w[t]):.8f}')
-                    print(f'checksum, q: {np.mean(sol.q[t]):.8f}')
-
-                print(f'checksum, c_keep: {np.mean(sol.c_keep[t]):.8f}')
-                print(f'checksum, d_adj: {np.mean(sol.d_adj[t]):.8f}')
-                print(f'checksum, c_adj: {np.mean(sol.c_adj[t]):.8f}')
-                print(f'checksum, inv_v_keep: {np.mean(sol.inv_v_keep[t]):.8f}')
-                print(f'checksum, inv_marg_u_keep: {np.mean(sol.inv_marg_u_keep[t]):.8f}')
-                print(f'checksum, inv_v_adj: {np.mean(sol.inv_v_adj[t]):.8f}')
-                print(f'checksum, inv_marg_u_adj: {np.mean(sol.inv_marg_u_adj[t]):.8f}')
-                print('')
+            print(f'checksum, c_keep: {np.mean(sol.c_keep[t]):.8f}')
+            print(f'checksum, d_adj: {np.mean(sol.d_adj[t]):.8f}')
+            print(f'checksum, c_adj: {np.mean(sol.c_adj[t]):.8f}')
+            print(f'checksum, inv_v_keep: {np.mean(sol.inv_v_keep[t]):.8f}')
+            print(f'checksum, inv_marg_u_keep: {np.mean(sol.inv_marg_u_keep[t]):.8f}')
+            print(f'checksum, inv_v_adj: {np.mean(sol.inv_v_adj[t]):.8f}')
+            print(f'checksum, inv_marg_u_adj: {np.mean(sol.inv_marg_u_adj[t]):.8f}')
+            print('')
 
     #########
     # solve #
@@ -238,7 +203,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         fastpar['do_print'] = False
         fastpar['do_print_period'] = False
         fastpar['T'] = 2
-        fastpar['Np'] = 3
+        fastpar['Np'] = 2
         fastpar['Nn'] = 3
         fastpar['Nm'] = 3
         fastpar['Nx'] = 3
