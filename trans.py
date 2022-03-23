@@ -21,3 +21,12 @@ def x_plus_func(m_plus,n_plus,pb,par):
     return m_plus + par.ph*n_plus - par.taug*n_plus*(pb - par.ph)
 
 # Add p_buy lom here
+
+# Add y_plus function
+# @njit(fastmath=True)
+# def y_plus_func(rand,y,p_mat):
+#     return 
+
+
+
+

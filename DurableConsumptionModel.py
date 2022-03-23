@@ -36,7 +36,7 @@ import negm
 import simulate
 import figs
 
-class DurableConsumptionModelClass(ModelClass):
+class DurableConsumptionModelClass(ModelClass): # Rename
     
     #########
     # setup #
@@ -68,7 +68,7 @@ class DurableConsumptionModelClass(ModelClass):
         par.do_2d = False
 
         # horizon
-        par.T = 5
+        par.T = 100
         
         # preferences
         par.beta = 0.965
@@ -90,6 +90,11 @@ class DurableConsumptionModelClass(ModelClass):
         par.p_mat = np.array([  # Stochastic matrix for income
             [1-par.p_12, par.p_12], 
             [par.p_21, 1-par.p_21]])
+
+        # More markov stuff - move later
+        par.pi = np.array([1/2,1/2]) # stationary distribution
+        par.pi_cum = np.array(np.cumsum(par.pi))
+        par.p_mat_cum = np.array([np.cumsum(par.p_mat[i,:]) for i in range(2)])
 
         # p_buy
         par.Npb = 2 # points in the grid
@@ -113,13 +118,13 @@ class DurableConsumptionModelClass(ModelClass):
         par.Na = 100
         par.a_max = par.m_max+1.0
 
-        # simulation
+        # simulation - these must be based on steady state
         par.sigma_p0 = 0.2
         par.mu_d0 = 0.8
         par.sigma_d0 = 0.2
         par.mu_a0 = 0.2
         par.sigma_a0 = 0.1
-        par.simN = 100000
+        par.simN = 1000
         par.sim_seed = 1998
         par.euler_cutoff = 0.02
 
@@ -414,9 +419,13 @@ class DurableConsumptionModelClass(ModelClass):
         sim.euler_error_c = np.zeros(euler_shape)
         sim.euler_error_rel = np.zeros(euler_shape)
 
-        # d. shocks
+        # d. shocks - I only need shocks to income (one variable)
         sim.psi = np.zeros((par.T,par.simN))
         sim.xi = np.zeros((par.T,par.simN))
+        sim.rand = np.zeros((par.T,par.simN))
+
+        sim.state = np.zeros((par.T,par.simN),dtype=np.int_) # Container for income states
+
 
     def simulate(self,do_utility=False,do_euler_error=False):
         """ simulate the model """
@@ -428,15 +437,12 @@ class DurableConsumptionModelClass(ModelClass):
         tic = time.time()
 
         # a. random shocks
-        sim.p0[:] = np.random.lognormal(mean=0,sigma=par.sigma_p0,size=par.simN)
-        sim.d0[:] = par.mu_d0*np.random.lognormal(mean=0,sigma=par.sigma_d0,size=par.simN)
-        sim.a0[:] = par.mu_a0*np.random.lognormal(mean=0,sigma=par.sigma_a0,size=par.simN)
+        sim.p0[:] = np.random.lognormal(mean=0,sigma=par.sigma_p0,size=par.simN) # Initial permanent income, can be removed
+        sim.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing
+        sim.a0[:] = par.mu_a0*np.random.lognormal(mean=0,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
 
-        I = np.random.choice(par.Nshocks,
-            size=(par.T,par.simN), 
-            p=par.psi_w*par.xi_w)
-        sim.psi[:,:] = par.psi[I]
-        sim.xi[:,:] = par.xi[I]
+        # Set shocks in each period
+        sim.rand[:,:] = np.random.uniform(size=(par.T,par.simN)) # move to model.py as numba does not like this
 
         # b. call
         with jit(self) as model:
@@ -444,7 +450,7 @@ class DurableConsumptionModelClass(ModelClass):
             par = model.par
             sol = model.sol
             sim = model.sim
-
+            # print(sim.rand)
             simulate.lifecycle(sim,sol,par)
 
         toc = time.time()
@@ -452,35 +458,35 @@ class DurableConsumptionModelClass(ModelClass):
         if par.do_print:
             print(f'model simulated in {toc-tic:.1f} secs')
 
-        # d. euler errors
-        def norm_euler_errors(model):
-            return np.log10(abs(model.sim.euler_error/model.sim.euler_error_c)+1e-8)
+        # # d. euler errors
+        # def norm_euler_errors(model):
+        #     return np.log10(abs(model.sim.euler_error/model.sim.euler_error_c)+1e-8)
 
-        tic = time.time()        
-        if do_euler_error:
+        # tic = time.time()        
+        # if do_euler_error:
 
-            with jit(self) as model:
+        #     with jit(self) as model:
 
-                par = model.par
-                sol = model.sol
-                sim = model.sim
+        #         par = model.par
+        #         sol = model.sol
+        #         sim = model.sim
 
-                simulate.euler_errors(sim,sol,par)
+        #         simulate.euler_errors(sim,sol,par)
             
-            sim.euler_error_rel[:] = norm_euler_errors(self)
+        #     sim.euler_error_rel[:] = norm_euler_errors(self)
         
-        toc = time.time()
-        if par.do_print:
-            print(f'euler errors calculated in {toc-tic:.1f} secs')
+        # toc = time.time()
+        # if par.do_print:
+        #     print(f'euler errors calculated in {toc-tic:.1f} secs')
 
-        # e. utility
-        tic = time.time()        
-        if do_utility:
-            simulate.calc_utility(sim,sol,par)
+        # # e. utility
+        # tic = time.time()        
+        # if do_utility:
+        #     simulate.calc_utility(sim,sol,par)
         
-        toc = time.time()
-        if par.do_print:
-            print(f'utility calculated in {toc-tic:.1f} secs')
+        # toc = time.time()
+        # if par.do_print:
+        #     print(f'utility calculated in {toc-tic:.1f} secs')
 
     ########
     # figs #
