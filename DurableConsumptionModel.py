@@ -25,7 +25,6 @@ import post_decision
 import nvfi
 import negm
 import simulate
-import figs
 
 class DurableConsumptionModelClass(ModelClass): # Rename
     
@@ -99,7 +98,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.Np = 2 #6 # update this
         par.p_min = 0.5
         par.p_max = 2.0
-        par.Nn = 10 # For now set 5 levels of housing
+        par.Nn = 10 # Levels of housing
         par.n_max = 1.0
         par.Nm = 100
         par.m_max = 10.0    
@@ -222,7 +221,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         self.solve(do_assert=False)
 
         # d. simulate
-        # self.simulate()  # uncomment this when the model runs
+        self.simulate()
 
         # e. reiterate
         for key,val in fastpar.items():
@@ -258,7 +257,6 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sol.q = np.nan*np.zeros(post_shape)
         sol.q_c = np.nan*np.zeros(post_shape)
         sol.q_m = np.nan*np.zeros(post_shape)
-        # print(post_shape)
 
     def solve(self,do_assert=True):
         """ solve the model
@@ -270,8 +268,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         """
 
         tic = time.time()
-            
-        # backwards induction
+
         for t in reversed(range(self.par.T)):
             
             self.par.t = t
@@ -358,8 +355,6 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # else:
         sim.d0 = np.zeros(par.simN)
-        sim.d10 = np.zeros(0) # not used
-        sim.d20 = np.zeros(0) # not used 
         sim.a0 = np.zeros(par.simN)
 
         sim.utility = np.zeros(par.simN)
@@ -369,12 +364,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim.p = np.zeros(sim_shape)
         sim.m = np.zeros(sim_shape)
         sim.n = np.zeros(sim_shape)
-        sim.n1 = np.zeros((0,0)) # not used
-        sim.n2 = np.zeros((0,0)) # not used 
         sim.discrete = np.zeros(sim_shape,dtype=np.int)
         sim.d = np.zeros(sim_shape)
-        sim.d1 = np.zeros((0,0)) # not used
-        sim.d2 = np.zeros((0,0)) # not used   
         sim.c = np.zeros(sim_shape)
         sim.a = np.zeros(sim_shape)
         
@@ -385,12 +376,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim.euler_error_rel = np.zeros(euler_shape)
 
         # d. shocks - I only need shocks to income (one variable)
-        sim.psi = np.zeros((par.T,par.simN))
-        sim.xi = np.zeros((par.T,par.simN))
         sim.rand = np.zeros((par.T,par.simN))
-
         sim.state = np.zeros((par.T,par.simN),dtype=np.int_) # Container for income states
-
 
     def simulate(self,do_utility=False,do_euler_error=False):
         """ simulate the model """
@@ -402,12 +389,11 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         tic = time.time()
 
         # a. random shocks
-        sim.p0[:] = np.random.lognormal(mean=0,sigma=par.sigma_p0,size=par.simN) # Initial permanent income, can be removed
-        sim.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing
+        sim.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing (discrete values)
         sim.a0[:] = par.mu_a0*np.random.lognormal(mean=0,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
 
         # Set shocks in each period
-        sim.rand[:,:] = np.random.uniform(size=(par.T,par.simN)) # move to model.py as numba does not like this
+        sim.rand[:,:] = np.random.uniform(size=(par.T,par.simN))
 
         # b. call
         with jit(self) as model:
@@ -422,138 +408,3 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         
         if par.do_print:
             print(f'model simulated in {toc-tic:.1f} secs')
-
-        # # d. euler errors
-        # def norm_euler_errors(model):
-        #     return np.log10(abs(model.sim.euler_error/model.sim.euler_error_c)+1e-8)
-
-        # tic = time.time()        
-        # if do_euler_error:
-
-        #     with jit(self) as model:
-
-        #         par = model.par
-        #         sol = model.sol
-        #         sim = model.sim
-
-        #         simulate.euler_errors(sim,sol,par)
-            
-        #     sim.euler_error_rel[:] = norm_euler_errors(self)
-        
-        # toc = time.time()
-        # if par.do_print:
-        #     print(f'euler errors calculated in {toc-tic:.1f} secs')
-
-        # # e. utility
-        # tic = time.time()        
-        # if do_utility:
-        #     simulate.calc_utility(sim,sol,par)
-        
-        # toc = time.time()
-        # if par.do_print:
-        #     print(f'utility calculated in {toc-tic:.1f} secs')
-
-    ########
-    # figs #
-    ########
-
-    def decision_functions(self):
-        figs.decision_functions(self)
-
-    def egm(self):        
-        figs.egm(self)
-
-    def lifecycle(self):        
-        figs.lifecycle(self)
-
-    ###########
-    # analyze #
-    ###########
-
-    # def analyze(self,solve=True,do_assert=True,**kwargs):
-        
-    #     par = self.par
-
-    #     for key,val in kwargs.items():
-    #         setattr(par,key,val)
-        
-    #     self.create_grids()
-
-    #     # solve and simulate
-    #     if solve:
-    #         self.precompile_numba()
-    #         self.solve(do_assert)
-    #     self.simulate(do_euler_error=True,do_utility=True)
-
-    #     # print
-    #     self.print_analysis()
-
-    # def print_analysis(self):
-
-    #     par = self.par
-    #     sim = self.sim
-
-    #     def avg_euler_error(model,I):
-    #         if I.any():
-    #             return np.nanmean(model.sim.euler_error_rel.ravel()[I])
-    #         else:
-    #             return np.nan
-
-    #     def percentile_euler_error(model,I,p):
-    #         if I.any():
-    #             return np.nanpercentile(model.sim.euler_error_rel.ravel()[I],p)
-    #         else:
-    #             return np.nan
-
-    #     # population
-    #     keepers = sim.discrete[:-1,:].ravel() == 0
-    #     adjusters = sim.discrete[:-1,:].ravel() > 0
-    #     adjusters_both = sim.discrete[:-1,:].ravel() == 1
-    #     adjusters_d1 = sim.discrete[:-1,:].ravel() == 2
-    #     adjusters_d2 = sim.discrete[:-1,:].ravel() == 3
-    #     everybody = keepers | adjusters
-
-    #     # print
-    #     time = par.time_w+par.time_adj+par.time_keep
-    #     txt = f'Name: {self.name} (solmethod = {par.solmethod})\n'
-    #     txt += f'Grids: (p,n,m,x,a) = ({par.Np},{par.Nn},{par.Nm},{par.Nx},{par.Na})\n'
-        
-    #     txt += 'Timings:\n'
-    #     txt += f' total: {np.sum(time):.1f}\n'
-    #     txt += f'     w: {np.sum(par.time_w):.1f}\n'
-    #     txt += f'  keep: {np.sum(par.time_keep):.1f}\n'
-    #     txt += f'   adj: {np.sum(par.time_adj):.1f}\n'
-    #     txt += f'Utility: {np.mean(sim.utility):.6f}\n'
-        
-    #     txt += 'Euler errors:\n'
-    #     txt += f'     total: {avg_euler_error(self,everybody):.2f} ({percentile_euler_error(self,everybody,5):.2f},{percentile_euler_error(self,everybody,95):.2f})\n'
-    #     txt += f'   keepers: {avg_euler_error(self,keepers):.2f} ({percentile_euler_error(self,keepers,5):.2f},{percentile_euler_error(self,keepers,95):.2f})\n'
-    #     txt += f' adjusters: {avg_euler_error(self,adjusters):.2f} ({percentile_euler_error(self,adjusters,5):.2f},{percentile_euler_error(self,adjusters,95):.2f})\n'
-        
-    #     if par.do_2d:
-    #         txt += f'      both: {avg_euler_error(self,adjusters_both):.2f} ({percentile_euler_error(self,adjusters_both,10):.2f},{percentile_euler_error(self,adjusters_both,90):.2f})\n'
-    #         txt += f'        d1: {avg_euler_error(self,adjusters_d1):.2f} ({percentile_euler_error(self,adjusters_d1,10):.2f},{percentile_euler_error(self,adjusters_d1,90):.2f})\n'
-    #         txt += f'        d2: {avg_euler_error(self,adjusters_d2):.2f} ({percentile_euler_error(self,adjusters_d2,10):.2f},{percentile_euler_error(self,adjusters_d2,90):.2f})\n'
-
-    #     txt += 'Moments:\n'
-    #     if par.do_2d:
-    #         txt += f' adjuster share: {np.mean(sim.discrete > 0):.3f}\n'
-    #         txt += f'           both: {np.mean(sim.discrete == 1):.3f}\n'
-    #         txt += f'        only d1: {np.mean(sim.discrete == 2):.3f}\n'
-    #         txt += f'        only d2: {np.mean(sim.discrete == 3):.3f}\n'
-    #     else:
-    #         txt += f' adjuster share: {np.mean(sim.discrete):.3f}\n'
-        
-    #     txt += f'         mean c: {np.mean(sim.c):.3f}\n'
-    #     txt += f'          var c: {np.var(sim.c):.3f}\n'
-
-    #     if par.do_2d:
-    #         txt += f'         mean d1: {np.mean(sim.d1):.3f}\n'
-    #         txt += f'          var d1: {np.var(sim.d1):.3f}\n'
-    #         txt += f'         mean d2: {np.mean(sim.d2):.3f}\n'
-    #         txt += f'          var d2: {np.var(sim.d2):.3f}\n'
-    #     else:
-    #         txt += f'         mean d: {np.mean(sim.d):.3f}\n'
-    #         txt += f'          var d: {np.var(sim.d):.3f}\n'
-
-    #     print(txt)
