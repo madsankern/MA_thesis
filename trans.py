@@ -1,6 +1,8 @@
 import numpy as np
 from numba import njit
 
+# from consav import markov
+
 # Durable
 @njit(fastmath=True)
 def n_plus_func(d,par):
@@ -22,10 +24,10 @@ def x_plus_func(m_plus,n_plus,pb,par):
 
 # Add p_buy lom here
 
-# Add y_plus function
+# Income process
 # @njit(fastmath=True)
-# def y_plus_func(rand,y,p_mat):
-#     return 
+# def y_plus_func(rand,p_mat,y_lag):
+#     return markov.choice(rand,p_mat[y_lag,:])
 
 
 
