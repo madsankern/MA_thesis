@@ -61,7 +61,7 @@ def lifecycle(sim,sol,par):
                 m[t,i] = trans.m_plus_func(a[t-1,i],p[t,i],par,n[t,i])
             
             # b. optimal choices and post decision states
-            optimal_choice(t,p[t,i],n[t,i],m[t,i],discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],sol,par)
+            optimal_choice(t,state[t,i],n[t,i],m[t,i],discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],sol,par)
             
 @njit
 def optimal_choice(t,p,n,m,discrete,d,c,a,sol,par): # Calculate the optimal choice
@@ -70,8 +70,8 @@ def optimal_choice(t,p,n,m,discrete,d,c,a,sol,par): # Calculate the optimal choi
     x = trans.x_plus_func(m,n,par.ph,par)
 
     # a. discrete choice
-    inv_v_keep = linear_interp.interp_3d(par.grid_p,par.grid_n,par.grid_m,sol.inv_v_keep[0,0],p,n,m)
-    inv_v_adj = linear_interp.interp_2d(par.grid_p,par.grid_x,sol.inv_v_adj[0,0],p,x)
+    inv_v_keep = linear_interp.interp_2d(par.grid_n,par.grid_m,sol.inv_v_keep[0,0,p],n,m)
+    inv_v_adj = linear_interp.interp_1d(par.grid_x,sol.inv_v_adj[0,0,p],x)
     adjust = inv_v_adj > inv_v_keep
     
     # b. continuous choices
@@ -79,13 +79,13 @@ def optimal_choice(t,p,n,m,discrete,d,c,a,sol,par): # Calculate the optimal choi
 
         discrete[0] = 1 # This is just to compute the share of adjusters
         
-        d[0] = linear_interp.interp_2d(
-            par.grid_p,par.grid_x,sol.d_adj[0,0],
-            p,x)
+        d[0] = linear_interp.interp_1d(
+            par.grid_x,sol.d_adj[0,0,p],
+            x)
 
-        c[0] = linear_interp.interp_2d(
-            par.grid_p,par.grid_x,sol.c_adj[0,0],
-            p,x)
+        c[0] = linear_interp.interp_1d(
+            par.grid_x,sol.c_adj[0,0,p],
+            x)
 
         tot = par.ph*d[0]+c[0]
         if tot > x: # Ensure that total consumption only add up to x
@@ -101,9 +101,9 @@ def optimal_choice(t,p,n,m,discrete,d,c,a,sol,par): # Calculate the optimal choi
 
         d[0] = n
 
-        c[0] = linear_interp.interp_3d(
-            par.grid_p,par.grid_n,par.grid_m,sol.c_keep[0,0],
-            p,n,m)
+        c[0] = linear_interp.interp_2d(
+            par.grid_n,par.grid_m,sol.c_keep[0,0,p],
+            n,m)
 
         if c[0] > m: 
             c[0] = m
