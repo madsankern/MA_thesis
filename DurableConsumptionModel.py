@@ -58,13 +58,13 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.do_2d = False
 
         # horizon
-        par.T = 100
+        par.T = 500
         
         # preferences
         par.beta = 0.965
         par.rho = 2.0
         par.alpha = 0.9
-        par.d_ubar = 0.1
+        par.d_ubar = 0.2
 
         # returns and income
         par.R = 1.03
@@ -72,7 +72,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.deltaa = 0.15
         par.pi = 0.0 # what is this
         par.mu = 0.5 # what is this
-        par.ph = 2.0 # House price - rename to p
+        par.ph = 6.0 # House price - rename to p
 
         # Markov process stuff
         par.p_12 = 0.33
@@ -96,14 +96,14 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # grids - rename p to y
         par.Np = 2 #6 # update this
-        par.p_min = 0.5
-        par.p_max = 2.0
+        par.p_min = 0.3
+        par.p_max = 1.0
         par.Nn = 10 # Levels of housing
-        par.n_max = 1.0
+        par.n_max = 0.15
         par.Nm = 100
         par.m_max = 10.0    
         par.Nx = 100
-        par.x_max = par.m_max + par.n_max
+        par.x_max = par.m_max + par.n_max # Add house price
         par.Na = 100
         par.a_max = par.m_max+1.0
 
@@ -113,7 +113,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.sigma_d0 = 0.2
         par.mu_a0 = 0.2
         par.sigma_a0 = 0.1
-        par.simN = 1000
+        par.simN = 100_000
         par.sim_seed = 1998
         par.euler_cutoff = 0.02
 
