@@ -71,7 +71,7 @@ def optimal_choice(t,p,n,m,discrete,d,c,a,sol,par): # Calculate the optimal choi
 
     # a. discrete choice
     inv_v_keep = linear_interp.interp_3d(par.grid_p,par.grid_n,par.grid_m,sol.inv_v_keep[0,0],p,n,m)
-    inv_v_adj = linear_interp.interp_2d(par.grid_p,par.grid_x,sol.inv_v_adj[0,0],p,x)    
+    inv_v_adj = linear_interp.interp_2d(par.grid_p,par.grid_x,sol.inv_v_adj[0,0],p,x)
     adjust = inv_v_adj > inv_v_keep
     
     # b. continuous choices
