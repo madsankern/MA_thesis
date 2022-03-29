@@ -1,5 +1,6 @@
 # IMPORTANT: Think about the timing of everything
 
+from joblib import Parallel
 import numpy as np
 from numba import njit, prange
 
@@ -11,9 +12,9 @@ from consav import markov
 import trans
 import utility
 
-@njit
+@njit(parallel=True)
 def lifecycle(sim,sol,par):
-    """ simulate full life-cycle """
+    """ simulate a panel of households """
 
     # unpack
     p = sim.p
@@ -29,16 +30,15 @@ def lifecycle(sim,sol,par):
 
     # Draw shocks - move to model.py later
     rand = sim.rand
-    
 
     # Remove markov.choice for prange to work
-    for t in range(par.T): # Loop over time periods (forward)
-        for i in range(par.simN): # parallelize over households rather than time
+    for i in prange(par.simN): # parallelize over households rather than time
+        for t in range(par.T): # Loop over time periods (forward)
             
             # a. beginning of period states
             if t == 0:
                 # Income
-                state_lag = markov.choice(rand[t,i], par.pi_cum) # draw from stationary distribution
+                state_lag = markov.choice(rand[t,i], par.pi_cum) # Initialize from stationary distribution
                 state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:])
                 p[t,i] = grid_p[state[t,i]]
                 
@@ -102,7 +102,7 @@ def optimal_choice(t,p,n,m,discrete,d,c,a,sol,par): # Calculate the optimal choi
         d[0] = n
 
         c[0] = linear_interp.interp_3d(
-            par.grid_p,par.grid_n,par.grid_m,sol.c_keep[t,0],
+            par.grid_p,par.grid_n,par.grid_m,sol.c_keep[0,0],
             p,n,m)
 
         if c[0] > m: 
