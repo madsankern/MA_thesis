@@ -58,7 +58,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.do_2d = False
 
         # horizon
-        par.T = 500
+        par.T = 100
         
         # preferences
         par.beta = 0.965
@@ -72,7 +72,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.deltaa = 0.15
         par.pi = 0.0 # what is this
         par.mu = 0.5 # what is this
-        par.ph = 6.0 # House price - rename to p
+        par.ph = 6.427186923955129 # House price - rename to p, set to equilibrium
 
         # Markov process stuff
         par.p_12 = 0.33
