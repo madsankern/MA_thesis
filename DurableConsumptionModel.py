@@ -25,6 +25,7 @@ import post_decision
 import nvfi
 import negm
 import simulate
+import path
 
 class DurableConsumptionModelClass(ModelClass): # Rename
     
@@ -36,10 +37,10 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         """ choose settings """
 
         # a. namespaces
-        self.namespaces = []
+        self.namespaces = ['sol_path']
         
         # b. other attributes
-        self.other_attrs = []
+        self.other_attrs = ['']
         
         # c. savefolder
         self.savefolder = 'saved'
@@ -58,7 +59,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.do_2d = False
 
         # horizon
-        par.T = 100
+        par.T = 50
+        par.path_T = 50 # 100 # Horizon for shock, adjust this
         
         # preferences
         par.beta = 0.965
@@ -68,11 +70,12 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # returns and income
         par.R = 1.03
+        par.path_R = np.full(par.path_T,par.R)
         par.tau = 0.10
         par.deltaa = 0.15
         par.pi = 0.0 # what is this
         par.mu = 0.5 # what is this
-        par.ph = 6.427186923955129 # House price - rename to p, set to equilibrium
+        par.ph = 6.4593010477953685 # House price - rename to p, set to equilibrium
 
         # Markov process stuff
         par.p_12 = 0.33
@@ -111,8 +114,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.sigma_p0 = 0.2
         par.mu_d0 = 0.8
         par.sigma_d0 = 0.2
-        par.mu_a0 = 0.2
-        par.sigma_a0 = 0.1
+        par.mu_a0 = 0.6
+        par.sigma_a0 = 0.1 # variance of initial assets
         par.simN = 100_000
         par.sim_seed = 1998
         par.euler_cutoff = 0.02
@@ -120,7 +123,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         # misc
         par.solmethod = 'negm' # this might also be redundant
         par.t = 0
-        par.tol = 1e-8
+        par.tol = 1e-6
         par.do_print = False
         par.do_print_period = False
         par.cppthreads = 8
@@ -133,6 +136,9 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         self.create_grids()
         self.solve_prep()
         self.simulate_prep()
+        
+        self.solve_path_prep()
+        # Add other path prep functions
             
     def create_grids(self):
         """ construct grids for states and shocks """
@@ -258,6 +264,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sol.q_c = np.nan*np.zeros(post_shape)
         sol.q_m = np.nan*np.zeros(post_shape)
 
+        sol.dist = np.nan*np.zeros(par.T) # to measure l_infty norm
+
     def solve(self,do_assert=True):
         """ solve the model
         
@@ -296,7 +304,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                     # o. compute post-decision functions
                     tic_w = time.time()
                     
-                    post_decision.compute_wq(t,sol,par,compute_q=True)
+                    post_decision.compute_wq(t,par.R,sol,par,compute_q=True)
 
                     toc_w = time.time()
                     par.time_w[t] = toc_w-tic_w
@@ -334,6 +342,10 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                         assert np.all((sol.d_adj[t] >= 0) & (np.isnan(sol.d_adj[t]) == False)), t
                         assert np.all((sol.c_adj[t] >= 0) & (np.isnan(sol.c_adj[t]) == False)), t
                         assert np.all((sol.inv_v_adj[t] >= 0) & (np.isnan(sol.inv_v_adj[t]) == False)), t
+
+                # Compute distance to previous iteration
+                if t < par.T-1:
+                    sol.dist[t] = np.abs(np.max(sol.c_keep[t+1,:,:,:,:] - sol.c_keep[t,:,:,:,:]))
 
                 # iii. print
                 toc = time.time()
@@ -390,7 +402,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # a. random shocks
         sim.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing (discrete values)
-        sim.a0[:] = par.mu_a0*np.random.lognormal(mean=0,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
+        sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
 
         # Set shocks in each period
         sim.rand[:,:] = np.random.uniform(size=(par.T,par.simN))
@@ -401,10 +413,86 @@ class DurableConsumptionModelClass(ModelClass): # Rename
             par = model.par
             sol = model.sol
             sim = model.sim
-            # print(sim.rand)
+
             simulate.lifecycle(sim,sol,par)
 
         toc = time.time()
         
         if par.do_print:
             print(f'model simulated in {toc-tic:.1f} secs')
+
+
+    #########################
+    # Solve Transition Path #
+    #########################
+
+    def solve_path_prep(self):
+        """ allocate memory for solution along a transition path"""
+
+        par = self.par
+        sol_path = self.sol_path
+
+        # a. standard
+        keep_shape_path = (par.path_T,par.Npb,par.Np,par.Nn,par.Nm)
+        sol_path.c_keep = np.zeros(keep_shape_path)
+        sol_path.inv_v_keep = np.zeros(keep_shape_path)
+        sol_path.inv_marg_u_keep = np.zeros(keep_shape_path)
+
+        adj_shape_path = (par.path_T,par.Npb,par.Np,par.Nx)
+        sol_path.d_adj = np.zeros(adj_shape_path)
+        sol_path.c_adj = np.zeros(adj_shape_path)
+        sol_path.inv_v_adj = np.zeros(adj_shape_path)
+        sol_path.inv_marg_u_adj = np.zeros(adj_shape_path)
+            
+        post_shape_path = (par.path_T-1,par.Npb,par.Np,par.Nn,par.Na)
+        sol_path.inv_w = np.nan*np.zeros(post_shape_path)
+        sol_path.q = np.nan*np.zeros(post_shape_path)
+        sol_path.q_c = np.nan*np.zeros(post_shape_path)
+        sol_path.q_m = np.nan*np.zeros(post_shape_path)
+
+
+    def solve_path(self):
+        '''Solve the household problem along a transition path'''
+
+        # for k in range(par.path_T):
+            # t = (par.path_T-1) - k
+
+        for t in reversed(range(self.par.path_T)):
+
+
+            with jit(self) as model:
+
+                par = self.par
+                sol_path = self.sol_path # sol_path
+
+                # Generate exogenous path of interest rates
+                path.gen_path_R(self.par)
+
+                # Update interest rates
+                R = par.path_R[t]
+                
+                # Last period
+                if t == par.path_T-1:
+
+                    last_period.solve(t,sol_path,par) # modify this with the stationary solution
+
+                else:
+                    
+                    # Compute post decision value
+                    post_decision.compute_wq(t,R,sol_path,par,compute_q=True) # Only need to update r here, then adj and keep should be okay
+
+                    # Solve keeper
+                    negm.solve_keep(t,sol_path,par)
+
+                    # Solve adjuster
+                    nvfi.solve_adj(t,sol_path,par)
+
+
+
+
+
+
+    # solve keeper
+    # solve adjuster
+    # compute post decision using path
+    #
