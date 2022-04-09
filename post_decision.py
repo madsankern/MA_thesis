@@ -9,7 +9,7 @@ import utility
 import trans
 
 @njit(parallel=True)
-def compute_wq(t,sol,par,compute_q=False):
+def compute_wq(t,R,sol,par,compute_q=False):
     """ compute the post-decision functions w and/or q """
 
     # unpack
@@ -86,7 +86,7 @@ def compute_wq(t,sol,par,compute_q=False):
                                 marg_u_plus = 1/inv_marg_u_adj_plus[i_a]
                             # Weight by probabilities
                             w[i_a] += weight*par.beta*v_plus
-                            q[i_pb,i_p,i_n,i_a] += weight*par.beta*par.R*marg_u_plus
+                            q[i_pb,i_p,i_n,i_a] += weight*par.beta*R*marg_u_plus
 
                     else: # Can be deleted, I think
                         for i_a in range(par.Na):
