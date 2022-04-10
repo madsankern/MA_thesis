@@ -61,6 +61,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         # horizon
         par.T = 50
         par.path_T = 50 # 100 # Horizon for shock, adjust this
+        par.sim_T = 200
         
         # preferences
         par.beta = 0.965
@@ -345,7 +346,9 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
                 # Compute distance to previous iteration
                 if t < par.T-1:
-                    sol.dist[t] = np.abs(np.max(sol.c_keep[t+1,:,:,:,:] - sol.c_keep[t,:,:,:,:]))
+                    # sol.dist[t] = np.abs(np.max(sol.c_keep[t+1,:,:,:,:] - sol.c_keep[t,:,:,:,:]))
+                    sol.dist[t] = np.abs(np.max(sol.c_adj[t+1,:,:,:] - sol.c_adj[t,:,:,:]))
+
 
                 # iii. print
                 toc = time.time()
@@ -372,7 +375,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim.utility = np.zeros(par.simN)
 
         # b. states and choices
-        sim_shape = (par.T,par.simN)
+        sim_shape = (par.sim_T,par.simN)
         sim.p = np.zeros(sim_shape)
         sim.m = np.zeros(sim_shape)
         sim.n = np.zeros(sim_shape)
@@ -382,14 +385,14 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim.a = np.zeros(sim_shape)
         
         # c. euler
-        euler_shape = (par.T-1,par.simN)
+        euler_shape = (par.sim_T-1,par.simN)
         sim.euler_error = np.zeros(euler_shape)
         sim.euler_error_c = np.zeros(euler_shape)
         sim.euler_error_rel = np.zeros(euler_shape)
 
         # d. shocks - I only need shocks to income (one variable)
-        sim.rand = np.zeros((par.T,par.simN))
-        sim.state = np.zeros((par.T,par.simN),dtype=np.int_) # Container for income states
+        sim.rand = np.zeros((par.sim_T,par.simN))
+        sim.state = np.zeros((par.sim_T,par.simN),dtype=np.int_) # Container for income states
 
     def simulate(self,do_utility=False,do_euler_error=False):
         """ simulate the model """
@@ -405,7 +408,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
 
         # Set shocks in each period
-        sim.rand[:,:] = np.random.uniform(size=(par.T,par.simN))
+        sim.rand[:,:] = np.random.uniform(size=(par.sim_T,par.simN))
 
         # b. call
         with jit(self) as model:
@@ -451,11 +454,9 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sol_path.q_m = np.nan*np.zeros(post_shape_path)
 
 
-    def solve_path(self):
+    def solve_path(self): # Add options for type of shock
         '''Solve the household problem along a transition path'''
 
-        # for k in range(par.path_T):
-            # t = (par.path_T-1) - k
 
         for t in reversed(range(self.par.path_T)):
 
@@ -487,12 +488,6 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                     # Solve adjuster
                     nvfi.solve_adj(t,sol_path,par)
 
-
-
-
-
-
-    # solve keeper
-    # solve adjuster
-    # compute post decision using path
-    #
+    def simulate_path(self):
+        '''Simulate a panel of households along a transition path'''
+        x =10
