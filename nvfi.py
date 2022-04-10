@@ -47,6 +47,8 @@ def solve_adj(t,sol,par):
     alpha = par.alpha
     rho = par.rho
 
+    # print(inv_v_keep)
+
     # loop over outer states
     for i_p in prange(par.Np): #prange
 
