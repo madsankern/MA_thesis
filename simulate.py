@@ -33,7 +33,7 @@ def lifecycle(sim,sol,par):
 
     # Remove markov.choice for prange to work
     for i in prange(par.simN): # parallelize over households rather than time
-        for t in range(par.T): # Loop over time periods (forward)
+        for t in range(par.sim_T): # Loop over time periods (forward)
             
             # a. beginning of period states
             if t == 0:
