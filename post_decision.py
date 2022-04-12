@@ -63,7 +63,7 @@ def compute_wq(t,R,sol,par,compute_q=False):
                     # v. next-period cash-on-hand and total resources
                     for i_a in range(par.Na):
             
-                        m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],p_plus,par,n,par.R)
+                        m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],p_plus,par,n,R)
                         x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,pb,par) # Add pb to the function in trans.py
                     
                     # vi. interpolate
