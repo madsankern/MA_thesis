@@ -4,7 +4,7 @@ from joblib import Parallel
 import numpy as np
 from numba import njit, prange
 
- # consav
+# consav
 from consav import linear_interp # for linear interpolation
 from consav import markov
 
@@ -46,7 +46,7 @@ def lifecycle(sim,sol,par):
                 n[t,i] = trans.n_plus_func(sim.d0[i],par)
                 
                 # Cash on hand
-                m[t,i] = trans.m_plus_func(sim.a0[i],p[t,i],par,n[t,i])
+                m[t,i] = trans.m_plus_func(sim.a0[i],p[t,i],par,n[t,i],par.R)
 
             else:
                 # Income
@@ -58,7 +58,7 @@ def lifecycle(sim,sol,par):
                 n[t,i] = trans.n_plus_func(d[t-1,i],par)
                 
                 # Cash on hand
-                m[t,i] = trans.m_plus_func(a[t-1,i],p[t,i],par,n[t,i])
+                m[t,i] = trans.m_plus_func(a[t-1,i],p[t,i],par,n[t,i],par.R)
             
             # b. optimal choices and post decision states
             optimal_choice(t,state[t,i],n[t,i],m[t,i],discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],sol,par)
