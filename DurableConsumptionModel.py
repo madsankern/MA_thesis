@@ -150,6 +150,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         """ construct grids for states and shocks """
         
         par = self.par
+        sim = self.sim
+        sim_path = self.sim_path
 
         par.do_marg_u = True
 
@@ -171,6 +173,10 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.time_keep = np.zeros(par.T)
         par.time_adj = np.zeros(par.T)
         par.time_adj_full = np.zeros(par.T)
+
+        # f. matrix of income shocks
+        sim.rand = np.random.uniform(size=(par.sim_T,par.simN))
+        sim_path.rand = np.random.uniform(size=(par.path_T+par.sim_T,par.simN))
 
     def checksum(self,simple=False,T=1):
         """ calculate and print checksum """
@@ -396,7 +402,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim.euler_error_rel = np.zeros(euler_shape)
 
         # d. shocks - I only need shocks to income (one variable)
-        sim.rand = np.zeros((par.sim_T,par.simN))
+        # sim.rand = np.zeros((par.sim_T,par.simN))
         sim.state = np.zeros((par.sim_T,par.simN),dtype=np.int_) # Container for income states
 
     def simulate(self,do_utility=False,do_euler_error=False):
@@ -413,7 +419,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
 
         # Set shocks in each period
-        sim.rand[:,:] = np.random.uniform(size=(par.sim_T,par.simN))
+        # sim.rand[:,:] = np.random.uniform(size=(par.sim_T,par.simN))
 
         # b. call
         with jit(self) as model:
@@ -545,7 +551,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim_path.a = np.zeros(sim_shape_path)
 
         # d. shocks - I only need shocks to income (one variable)
-        sim_path.rand = np.zeros((par.sim_T + par.path_T,par.simN))
+        # sim_path.rand = np.zeros((par.sim_T + par.path_T,par.simN)) # defined earlier instead
         sim_path.state = np.zeros((par.sim_T + par.path_T,par.simN),dtype=np.int_) # Container for income states        
 
     def simulate_path(self):
@@ -560,7 +566,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim_path.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
 
         # Set shocks in each period
-        sim_path.rand[:,:] = np.random.uniform(size=(par.sim_T + par.path_T,par.simN))
+        # sim_path.rand[:,:] = np.random.uniform(size=(par.sim_T + par.path_T,par.simN)) # Set earlier
 
         # b. call
         with jit(self) as model:
