@@ -25,7 +25,9 @@ import post_decision
 import nvfi
 import negm
 import simulate
+
 import path
+import simulate_path
 
 class DurableConsumptionModelClass(ModelClass): # Rename
     
@@ -37,7 +39,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         """ choose settings """
 
         # a. namespaces
-        self.namespaces = ['sol_path']
+        self.namespaces = ['sol_path', 'sim_path']
         
         # b. other attributes
         self.other_attrs = ['']
@@ -60,7 +62,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # horizon
         par.T = 50
-        par.path_T = 50 # 100 # Horizon for shock, adjust this
+        par.path_T = 300 # 50 periods for convergence and 50 for the actual path
         par.sim_T = 200
         
         # preferences
@@ -71,7 +73,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # returns and income
         par.R = 1.03
-        par.path_R = np.full(par.path_T,par.R)
+        par.path_R = np.full(par.sim_T + par.path_T, par.R)
         par.tau = 0.10
         par.deltaa = 0.15
         par.pi = 0.0 # what is this
@@ -135,11 +137,14 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         """ allocate model, i.e. create grids and allocate solution and simluation arrays """
 
         self.create_grids()
+
+        # a. Steady state
         self.solve_prep()
         self.simulate_prep()
         
+        # b. Transition path
         self.solve_path_prep()
-        # Add other path prep functions
+        self.simulate_path_prep()
             
     def create_grids(self):
         """ construct grids for states and shocks """
@@ -436,18 +441,18 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sol_path = self.sol_path
 
         # a. standard
-        keep_shape_path = (par.path_T,par.Npb,par.Np,par.Nn,par.Nm)
+        keep_shape_path = (par.sim_T + par.path_T,par.Npb,par.Np,par.Nn,par.Nm)
         sol_path.c_keep = np.zeros(keep_shape_path)
         sol_path.inv_v_keep = np.zeros(keep_shape_path)
         sol_path.inv_marg_u_keep = np.zeros(keep_shape_path)
 
-        adj_shape_path = (par.path_T,par.Npb,par.Np,par.Nx)
+        adj_shape_path = (par.sim_T + par.path_T,par.Npb,par.Np,par.Nx)
         sol_path.d_adj = np.zeros(adj_shape_path)
         sol_path.c_adj = np.zeros(adj_shape_path)
         sol_path.inv_v_adj = np.zeros(adj_shape_path)
         sol_path.inv_marg_u_adj = np.zeros(adj_shape_path)
             
-        post_shape_path = (par.path_T-1,par.Npb,par.Np,par.Nn,par.Na)
+        post_shape_path = (par.sim_T + par.path_T-1,par.Npb,par.Np,par.Nn,par.Na)
         sol_path.inv_w = np.nan*np.zeros(post_shape_path)
         sol_path.q = np.nan*np.zeros(post_shape_path)
         sol_path.q_c = np.nan*np.zeros(post_shape_path)
@@ -457,23 +462,24 @@ class DurableConsumptionModelClass(ModelClass): # Rename
     def solve_path(self): # Add options for type of shock
         '''Solve the household problem along a transition path'''
 
+        # Generate exogenous path of interest rates
+        path.gen_path_R(self.par)
 
-        for t in reversed(range(self.par.path_T)):
-
+        for t in reversed(range(self.par.sim_T, self.par.sim_T + self.par.path_T)):
 
             with jit(self) as model:
 
                 par = self.par
                 sol_path = self.sol_path # sol_path
 
-                # Generate exogenous path of interest rates
-                path.gen_path_R(self.par)
+                # # Generate exogenous path of interest rates
+                # path.gen_path_R(self.par)
 
                 # Update interest rates
                 R = par.path_R[t]
                 
                 # Last period
-                if t == par.path_T-1:
+                if t == (par.path_T+par.sim_T)-1:
 
                     last_period.solve(t,sol_path,par) # modify this with the stationary solution
 
@@ -488,6 +494,80 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                     # Solve adjuster
                     nvfi.solve_adj(t,sol_path,par)
 
+        # Append the solution to the initial steady state
+        with jit(self) as model:
+
+            par = self.par
+            sol_path = self.sol_path
+            sol = self.sol
+
+            sol_path.c_keep[0:par.sim_T] = sol.c_keep[0]
+            sol_path.inv_v_keep[0:par.sim_T] = sol.inv_v_keep[0]
+            sol_path.inv_marg_u_keep[0:par.sim_T] = sol.inv_marg_u_keep[0]
+
+            sol_path.d_adj[0:par.sim_T] = sol.d_adj[0]
+            sol_path.c_adj[0:par.sim_T] = sol.c_adj[0]
+            sol_path.inv_v_adj[0:par.sim_T] = sol.inv_v_adj[0]
+            sol_path.inv_marg_u_adj[0:par.sim_T] = sol.inv_marg_u_adj[0]
+                
+            sol_path.inv_w[0:par.sim_T] = sol.inv_w[0]
+            sol_path.q[0:par.sim_T] = sol.q[0]
+            sol_path.q_c[0:par.sim_T] = sol.q_c[0]
+            sol_path.q_m[0:par.sim_T] = sol.q[0]
+
+    ############################
+    # Simulate Transition Path #
+    ############################
+    
+    def simulate_path_prep(self):
+        """ allocate memory for simulation """
+
+        par = self.par
+        sim_path = self.sim_path
+
+        # a. initial and final
+        sim_path.p0 = np.zeros(par.simN)
+
+        # else:
+        sim_path.d0 = np.zeros(par.simN)
+        sim_path.a0 = np.zeros(par.simN)
+
+        sim_path.utility = np.zeros(par.simN)
+
+        # b. states and choices
+        sim_shape_path = (par.sim_T + par.path_T,par.simN)
+        sim_path.p = np.zeros(sim_shape_path)
+        sim_path.m = np.zeros(sim_shape_path)
+        sim_path.n = np.zeros(sim_shape_path)
+        sim_path.discrete = np.zeros(sim_shape_path,dtype=np.int)
+        sim_path.d = np.zeros(sim_shape_path)
+        sim_path.c = np.zeros(sim_shape_path)
+        sim_path.a = np.zeros(sim_shape_path)
+
+        # d. shocks - I only need shocks to income (one variable)
+        sim_path.rand = np.zeros((par.sim_T + par.path_T,par.simN))
+        sim_path.state = np.zeros((par.sim_T + par.path_T,par.simN),dtype=np.int_) # Container for income states        
+
     def simulate_path(self):
         '''Simulate a panel of households along a transition path'''
-        x =10
+    
+        par = self.par
+        sol_path = self.sol_path
+        sim_path = self.sim_path
+
+        # a. random shocks
+        sim_path.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing (discrete values)
+        sim_path.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
+
+        # Set shocks in each period
+        sim_path.rand[:,:] = np.random.uniform(size=(par.sim_T + par.path_T,par.simN))
+
+        # b. call
+        with jit(self) as model:
+
+            par = self.par
+            sol = self.sol
+            sol_path = self.sol_path
+            sim_path = self.sim_path
+
+            simulate_path.lifecycle(sim_path,sol_path,par)
