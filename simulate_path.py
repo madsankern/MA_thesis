@@ -1,4 +1,4 @@
-# Simulate a panel along a transition path
+## THIS FILE IS NOW OBSOLETE ##
 
 from joblib import Parallel
 import numpy as np
@@ -52,7 +52,7 @@ def lifecycle(sim_path,sol_path,par):
                 # Cash on hand
                 m[t,i] = trans.m_plus_func(sim_path.a0[i],p[t,i],par,n[t,i],R)
 
-            if t > 0:
+            else:
                 # Income
                 state_lag = state[t-1,i] # Use last periods value
                 state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:])
