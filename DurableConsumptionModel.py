@@ -47,7 +47,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         # c. savefolder
         self.savefolder = 'saved'
 
-        # d. list not-floats for safe type inference
+        # d. list not-floats for safe type inference - UPDATE
         self.not_floats = ['solmethod','T','t','simN','sim_seed','cppthreads',
                            'Npsi','Nxi','Nm','Np','Nn','Nx','Na','Nshocks',
                            'do_2d','do_print','do_print_period','do_marg_u','do_simple_wq']
@@ -58,12 +58,12 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par = self.par
 
         # a. baseline parameters
-        par.do_2d = False
+        par.do_2d = False # Can this be removed?
 
         # horizon
-        par.T = 50
-        par.path_T = 300 # 50 periods for convergence and 50 for the actual path
-        par.sim_T = 200
+        par.T = 50 # Number of iterations to find stationary solution
+        par.path_T = 300 # 300 periods AFTER the shock occured
+        par.sim_T = 200 # Length of stationary simulatin to ensure convergence
         
         # preferences
         par.beta = 0.965
@@ -73,8 +73,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # returns and income
         par.R = 1.03
-        par.path_R = np.full(par.sim_T + par.path_T, par.R)
-        par.tau = 0.10
+        par.path_R = np.full(par.sim_T + par.path_T, par.R) # for impulse response
+        par.tau = 0.10 # can be removed
         par.deltaa = 0.15
         par.pi = 0.0 # what is this
         par.mu = 0.5 # what is this
@@ -175,10 +175,13 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.time_adj_full = np.zeros(par.T)
 
         # f. matrix of income shocks
-        sim.rand = np.random.uniform(size=(par.sim_T,par.simN))
-        sim_path.rand = np.random.uniform(size=(par.path_T+par.sim_T,par.simN))
+        sim.rand = np.zeros(shape=(par.sim_T,par.simN))
+        sim_path.rand = np.zeros(shape=(par.path_T+par.sim_T,par.simN))
 
-    def checksum(self,simple=False,T=1):
+        sim.rand[:,:] = np.random.uniform(size=(par.sim_T,par.simN))
+        sim_path.rand[:,:] = np.random.uniform(size=(par.path_T+par.sim_T,par.simN))
+
+    def checksum(self,simple=False,T=1): # update
         """ calculate and print checksum """
 
         par = self.par
@@ -220,6 +223,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         fastpar['do_print'] = False
         fastpar['do_print_period'] = False
         fastpar['T'] = 2
+        fastpar['sim_T'] = 2
+        fastpar['path_T'] = 2
         fastpar['Np'] = 2
         fastpar['Nn'] = 3
         fastpar['Nm'] = 3
@@ -240,6 +245,10 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # d. simulate
         self.simulate()
+
+        # Add solve_path and simulate_path - check why this seems to be wrong
+        # self.solve_path()
+        # self.simulate_path()
 
         # e. reiterate
         for key,val in fastpar.items():
@@ -360,7 +369,6 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                     # sol.dist[t] = np.abs(np.max(sol.c_keep[t+1,:,:,:,:] - sol.c_keep[t,:,:,:,:]))
                     sol.dist[t] = np.abs(np.max(sol.c_adj[t+1,:,:,:] - sol.c_adj[t,:,:,:]))
 
-
                 # iii. print
                 toc = time.time()
                 if par.do_print or par.do_print_period:
@@ -401,9 +409,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim.euler_error_c = np.zeros(euler_shape)
         sim.euler_error_rel = np.zeros(euler_shape)
 
-        # d. shocks - I only need shocks to income (one variable)
-        # sim.rand = np.zeros((par.sim_T,par.simN))
-        sim.state = np.zeros((par.sim_T,par.simN),dtype=np.int_) # Container for income states
+        # d. Income states
+        sim.state = np.zeros((par.sim_T,par.simN),dtype=np.int_)
 
     def simulate(self,do_utility=False,do_euler_error=False):
         """ simulate the model """
@@ -414,12 +421,9 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         tic = time.time()
 
-        # a. random shocks
+        # a. Random initial allocation of housing and cash on hand
         sim.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing (discrete values)
         sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
-
-        # Set shocks in each period
-        # sim.rand[:,:] = np.random.uniform(size=(par.sim_T,par.simN))
 
         # b. call
         with jit(self) as model:
@@ -428,7 +432,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
             sol = model.sol
             sim = model.sim
 
-            simulate.lifecycle(sim,sol,par)
+            simulate.lifecycle(sim,sol,par,path=False)
 
         toc = time.time()
         
@@ -477,9 +481,6 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
                 par = self.par
                 sol_path = self.sol_path # sol_path
-
-                # # Generate exogenous path of interest rates
-                # path.gen_path_R(self.par)
 
                 # Update interest rates
                 R = par.path_R[t]
@@ -551,7 +552,6 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim_path.a = np.zeros(sim_shape_path)
 
         # d. shocks - I only need shocks to income (one variable)
-        # sim_path.rand = np.zeros((par.sim_T + par.path_T,par.simN)) # defined earlier instead
         sim_path.state = np.zeros((par.sim_T + par.path_T,par.simN),dtype=np.int_) # Container for income states        
 
     def simulate_path(self):
@@ -565,15 +565,11 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim_path.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing (discrete values)
         sim_path.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
 
-        # Set shocks in each period
-        # sim_path.rand[:,:] = np.random.uniform(size=(par.sim_T + par.path_T,par.simN)) # Set earlier
-
         # b. call
         with jit(self) as model:
 
             par = self.par
-            sol = self.sol
             sol_path = self.sol_path
             sim_path = self.sim_path
 
-            simulate_path.lifecycle(sim_path,sol_path,par)
+            simulate.lifecycle(sim_path,sol_path,par,path=True)
