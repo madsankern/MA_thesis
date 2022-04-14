@@ -73,12 +73,14 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # returns and income
         par.R = 1.03
+        par.ph = 6.4593010477953685 # House price - rename to p, set to equilibrium
+
         par.path_R = np.full(par.sim_T + par.path_T, par.R) # for impulse response
+        par.path_ph = np.full(par.sim_T + par.path_T, par.ph) # House price sequence
         par.tau = 0.10 # can be removed
         par.deltaa = 0.15
         par.pi = 0.0 # what is this
         par.mu = 0.5 # what is this
-        par.ph = 6.4593010477953685 # House price - rename to p, set to equilibrium
 
         # Markov process stuff
         par.p_12 = 0.33
@@ -101,9 +103,9 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.taug = 0.0 # Gains tax
 
         # grids - rename p to y
-        par.Np = 2 #6 # update this
-        par.p_min = 0.3
-        par.p_max = 1.0
+        par.Ny = 2 #6 # update this
+        par.y_min = 0.3
+        par.y_max = 1.0
         par.Nn = 10 # Levels of housing
         par.n_max = 0.15
         par.Nm = 100
@@ -156,7 +158,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.do_marg_u = True
 
         # a. states
-        par.grid_p = nonlinspace(par.p_min,par.p_max,par.Np,1.1)
+        par.grid_y = nonlinspace(par.y_min,par.y_max,par.Ny,1.1)
         par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.1) # Grid over housing, can be nonlinspace
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
@@ -225,7 +227,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         fastpar['T'] = 2
         fastpar['sim_T'] = 2
         fastpar['path_T'] = 2
-        fastpar['Np'] = 2
+        fastpar['Ny'] = 2
         fastpar['Nn'] = 3
         fastpar['Nm'] = 3
         fastpar['Nx'] = 3
@@ -267,19 +269,19 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sol = self.sol
 
         # a. standard
-        keep_shape = (par.T,par.Npb,par.Np,par.Nn,par.Nm)
+        keep_shape = (par.T,par.Npb,par.Ny,par.Nn,par.Nm)
         
         sol.c_keep = np.zeros(keep_shape)
         sol.inv_v_keep = np.zeros(keep_shape)
         sol.inv_marg_u_keep = np.zeros(keep_shape)
 
-        adj_shape = (par.T,par.Npb,par.Np,par.Nx)
+        adj_shape = (par.T,par.Npb,par.Ny,par.Nx)
         sol.d_adj = np.zeros(adj_shape)
         sol.c_adj = np.zeros(adj_shape)
         sol.inv_v_adj = np.zeros(adj_shape)
         sol.inv_marg_u_adj = np.zeros(adj_shape)
             
-        post_shape = (par.T-1,par.Npb,par.Np,par.Nn,par.Na)
+        post_shape = (par.T-1,par.Npb,par.Ny,par.Nn,par.Na)
         sol.inv_w = np.nan*np.zeros(post_shape)
         sol.q = np.nan*np.zeros(post_shape)
         sol.q_c = np.nan*np.zeros(post_shape)
@@ -310,7 +312,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                 # i. last period
                 if t == par.T-1:
 
-                    last_period.solve(t,sol,par)
+                    last_period.solve(t,sol,par,par.ph)
 
                     if do_assert:
                         assert np.all((sol.c_keep[t] >= 0) & (np.isnan(sol.c_keep[t]) == False))
@@ -325,7 +327,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                     # o. compute post-decision functions
                     tic_w = time.time()
                     
-                    post_decision.compute_wq(t,par.R,sol,par,compute_q=True)
+                    post_decision.compute_wq(t,par.R,sol,par,par.ph,compute_q=True)
 
                     toc_w = time.time()
                     par.time_w[t] = toc_w-tic_w
@@ -352,7 +354,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                     # ooo. solve adjuster problem
                     tic_adj = time.time()
                     
-                    nvfi.solve_adj(t,sol,par)                  
+                    nvfi.solve_adj(t,sol,par,par.ph)                  
 
                     toc_adj = time.time()
                     par.time_adj[t] = toc_adj-tic_adj
@@ -395,7 +397,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # b. states and choices
         sim_shape = (par.sim_T,par.simN)
-        sim.p = np.zeros(sim_shape)
+        sim.y = np.zeros(sim_shape)
         sim.m = np.zeros(sim_shape)
         sim.n = np.zeros(sim_shape)
         sim.discrete = np.zeros(sim_shape,dtype=np.int)
@@ -451,18 +453,18 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sol_path = self.sol_path
 
         # a. standard
-        keep_shape_path = (par.sim_T + par.path_T,par.Npb,par.Np,par.Nn,par.Nm)
+        keep_shape_path = (par.sim_T + par.path_T,par.Npb,par.Ny,par.Nn,par.Nm)
         sol_path.c_keep = np.zeros(keep_shape_path)
         sol_path.inv_v_keep = np.zeros(keep_shape_path)
         sol_path.inv_marg_u_keep = np.zeros(keep_shape_path)
 
-        adj_shape_path = (par.sim_T + par.path_T,par.Npb,par.Np,par.Nx)
+        adj_shape_path = (par.sim_T + par.path_T,par.Npb,par.Ny,par.Nx)
         sol_path.d_adj = np.zeros(adj_shape_path)
         sol_path.c_adj = np.zeros(adj_shape_path)
         sol_path.inv_v_adj = np.zeros(adj_shape_path)
         sol_path.inv_marg_u_adj = np.zeros(adj_shape_path)
             
-        post_shape_path = (par.sim_T + par.path_T-1,par.Npb,par.Np,par.Nn,par.Na)
+        post_shape_path = (par.sim_T + par.path_T-1,par.Npb,par.Ny,par.Nn,par.Na)
         sol_path.inv_w = np.nan*np.zeros(post_shape_path)
         sol_path.q = np.nan*np.zeros(post_shape_path)
         sol_path.q_c = np.nan*np.zeros(post_shape_path)
@@ -482,24 +484,25 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                 par = self.par
                 sol_path = self.sol_path # sol_path
 
-                # Update interest rates
+                # Update interest rates and house prices
                 R = par.path_R[t]
+                ph = par.path_ph[t]
                 
                 # Last period
                 if t == (par.path_T+par.sim_T)-1:
 
-                    last_period.solve(t,sol_path,par) # modify this with the stationary solution
+                    last_period.solve(t,sol_path,par,ph) # modify this with the stationary solution
 
                 else:
                     
                     # Compute post decision value
-                    post_decision.compute_wq(t,R,sol_path,par,compute_q=True) # Only need to update r here, then adj and keep should be okay
+                    post_decision.compute_wq(t,R,sol_path,par,ph,compute_q=True) # Only need to update r here, then adj and keep should be okay
 
                     # Solve keeper
                     negm.solve_keep(t,sol_path,par)
 
                     # Solve adjuster
-                    nvfi.solve_adj(t,sol_path,par)
+                    nvfi.solve_adj(t,sol_path,par,ph)
 
         # Append the solution to the initial steady state
         with jit(self) as model:
@@ -543,7 +546,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # b. states and choices
         sim_shape_path = (par.sim_T + par.path_T,par.simN)
-        sim_path.p = np.zeros(sim_shape_path)
+        sim_path.y = np.zeros(sim_shape_path)
         sim_path.m = np.zeros(sim_shape_path)
         sim_path.n = np.zeros(sim_shape_path)
         sim_path.discrete = np.zeros(sim_shape_path,dtype=np.int)

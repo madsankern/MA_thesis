@@ -23,7 +23,7 @@ def solve_keep(t,sol,par):
 
     for i_pb in range(par.Npb):
 
-        for i_p in prange(par.Np):
+        for i_y in prange(par.Ny):
             
             # temporary container
             v_ast_vec = np.zeros(par.Nm)
@@ -35,15 +35,15 @@ def solve_keep(t,sol,par):
                 # use euler equation
                 n = par.grid_n[i_n]
                 for i_a in range(par.Na):
-                    q_c[i_pb,i_p,i_n,i_a] = utility.inv_marg_func(sol.q[t,i_pb,i_p,i_n,i_a],n,par)
-                    q_m[i_pb,i_p,i_n,i_a] = par.grid_a[i_a] + q_c[i_pb,i_p,i_n,i_a]
+                    q_c[i_pb,i_y,i_n,i_a] = utility.inv_marg_func(sol.q[t,i_pb,i_y,i_n,i_a],n,par)
+                    q_m[i_pb,i_y,i_n,i_a] = par.grid_a[i_a] + q_c[i_pb,i_y,i_n,i_a]
             
                 # upperenvelope
-                negm_upperenvelope(par.grid_a,q_m[i_pb,i_p,i_n],q_c[i_pb,i_p,i_n],sol.inv_w[t,i_pb,i_p,i_n],
-                par.grid_m,c[i_pb,i_p,i_n],v_ast_vec,n,par)        
+                negm_upperenvelope(par.grid_a,q_m[i_pb,i_y,i_n],q_c[i_pb,i_y,i_n],sol.inv_w[t,i_pb,i_y,i_n],
+                par.grid_m,c[i_pb,i_y,i_n],v_ast_vec,n,par)        
 
                 # negative inverse
                 for i_m in range(par.Nm):
-                    inv_v[i_pb,i_p,i_n,i_m] = -1/v_ast_vec[i_m]
+                    inv_v[i_pb,i_y,i_n,i_m] = -1/v_ast_vec[i_m]
                     if par.do_marg_u:
-                        inv_marg_u[i_pb,i_p,i_n,i_m] = 1/utility.marg_func(c[i_pb,i_p,i_n,i_m],n,par)
+                        inv_marg_u[i_pb,i_y,i_n,i_m] = 1/utility.marg_func(c[i_pb,i_y,i_n,i_m],n,par)
