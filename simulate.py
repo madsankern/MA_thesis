@@ -34,7 +34,7 @@ def lifecycle(sim,sol,par,path=False):
 
     # Determine simulation length
     if path:
-        horizon = par.sim_T + 50
+        horizon = par.sim_T + par.path_T
     else:
         horizon = par.sim_T
 

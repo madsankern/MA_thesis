@@ -60,8 +60,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # a. Horizon
         par.T = 50 # Number of iterations to find stationary solution
-        par.path_T = 300 # 300 periods AFTER the shock occured
-        par.sim_T = 200 # Length of stationary simulatin to ensure convergence
+        par.path_T = 100 # Length of model solve along the path
+        par.sim_T = 200 # Length of stationary simulation to ensure convergence
         
         # b. Preferences
         par.beta = 0.965
@@ -76,8 +76,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.deltaa = 0.15 # maintenence cost
 
         # d. Path for aggregate states
-        par.path_R = np.full(par.sim_T + par.path_T, par.R) # for impulse response
-        par.path_ph = np.full(par.sim_T + par.path_T, par.ph) # House price sequence
+        par.path_R = np.full(par.sim_T + par.path_T + par.T, par.R) # for impulse response
+        par.path_ph = np.full(par.sim_T + par.path_T + par.T, par.ph) # House price sequence
 
         par.pi = 0.0 # what is this
         par.mu = 0.5 # what is this
@@ -112,7 +112,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.Nm = 100
         par.m_max = 10.0    
         par.Nx = 100
-        par.x_max = par.m_max + par.n_max # Add house price
+        par.x_max = par.m_max + par.ph*par.n_max # Add house price
         par.Na = 100
         par.a_max = par.m_max+1.0
 
@@ -452,21 +452,23 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par = self.par
         sol_path = self.sol_path
 
+        # NOTE the length of the time horizon
+        
         # a. Keeper
-        keep_shape_path = (par.sim_T + par.path_T,par.Npb,par.Ny,par.Nn,par.Nm)
+        keep_shape_path = (par.sim_T + par.path_T + par.T ,par.Npb,par.Ny,par.Nn,par.Nm)
         sol_path.c_keep = np.zeros(keep_shape_path)
         sol_path.inv_v_keep = np.zeros(keep_shape_path)
         sol_path.inv_marg_u_keep = np.zeros(keep_shape_path)
 
         # b. Adjuster
-        adj_shape_path = (par.sim_T + par.path_T,par.Npb,par.Ny,par.Nx)
+        adj_shape_path = (par.sim_T + par.path_T + par.T,par.Npb,par.Ny,par.Nx)
         sol_path.d_adj = np.zeros(adj_shape_path)
         sol_path.c_adj = np.zeros(adj_shape_path)
         sol_path.inv_v_adj = np.zeros(adj_shape_path)
         sol_path.inv_marg_u_adj = np.zeros(adj_shape_path)
 
         # c. Post decision
-        post_shape_path = (par.sim_T + par.path_T-1,par.Npb,par.Ny,par.Nn,par.Na)
+        post_shape_path = (par.sim_T + par.path_T + par.T - 1,par.Npb,par.Ny,par.Nn,par.Na)
         sol_path.inv_w = np.nan*np.zeros(post_shape_path)
         sol_path.q = np.nan*np.zeros(post_shape_path)
         sol_path.q_c = np.nan*np.zeros(post_shape_path)
@@ -479,7 +481,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         # a. Generate exogenous path of interest rates
         path.gen_path_R(self.par)
 
-        for t in reversed(range(self.par.sim_T, self.par.sim_T + self.par.path_T)):
+        for t in reversed(range(self.par.sim_T, self.par.sim_T + self.par.path_T + self.par.T)):
 
             with jit(self) as model:
 
@@ -491,7 +493,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                 ph = par.path_ph[t]
                 
                 # ii. Last period
-                if t == (par.path_T+par.sim_T)-1:
+                if t == (par.path_T+par.sim_T+par.T)-1:
 
                     last_period.solve(t,sol_path,par,ph) # modify this with the stationary solution
 
@@ -537,24 +539,22 @@ class DurableConsumptionModelClass(ModelClass): # Rename
             sol_path = self.sol_path
             sol = self.sol
 
-            path_length = 50
-
             # i. Keeper
-            sol_path.c_keep[par.sim_T+path_length:] = sol_path.c_keep[par.sim_T+path_length]
-            sol_path.inv_v_keep[par.sim_T+path_length:] = sol_path.inv_v_keep[par.sim_T+path_length]
-            sol_path.inv_marg_u_keep[par.sim_T+path_length:] = sol_path.inv_marg_u_keep[par.sim_T+path_length]
+            sol_path.c_keep[par.sim_T+par.path_T:] = sol_path.c_keep[par.sim_T+par.path_T]
+            sol_path.inv_v_keep[par.sim_T+par.path_T:] = sol_path.inv_v_keep[par.sim_T+par.path_T]
+            sol_path.inv_marg_u_keep[par.sim_T+par.path_T:] = sol_path.inv_marg_u_keep[par.sim_T+par.path_T]
 
             # ii. Adjuster
-            sol_path.d_adj[par.sim_T+path_length:] = sol_path.d_adj[par.sim_T+path_length]
-            sol_path.c_adj[par.sim_T+path_length:] = sol_path.c_adj[par.sim_T+path_length]
-            sol_path.inv_v_adj[par.sim_T+path_length:] = sol_path.inv_v_adj[par.sim_T+path_length]
-            sol_path.inv_marg_u_adj[par.sim_T+path_length:] = sol_path.inv_marg_u_adj[par.sim_T+path_length]
+            sol_path.d_adj[par.sim_T+par.path_T:] = sol_path.d_adj[par.sim_T+par.path_T]
+            sol_path.c_adj[par.sim_T+par.path_T:] = sol_path.c_adj[par.sim_T+par.path_T]
+            sol_path.inv_v_adj[par.sim_T+par.path_T] = sol_path.inv_v_adj[par.sim_T+par.path_T]
+            sol_path.inv_marg_u_adj[par.sim_T+par.path_T:] = sol_path.inv_marg_u_adj[par.sim_T+par.path_T]
                 
             # iii. Post decision
-            sol_path.inv_w[par.sim_T+path_length:] = sol_path.inv_w[par.sim_T+path_length]
-            sol_path.q[par.sim_T+path_length:] = sol_path.q[par.sim_T+path_length]
-            sol_path.q_c[par.sim_T+path_length:] = sol_path.q_c[par.sim_T+path_length]
-            sol_path.q_m[par.sim_T+path_length:] = sol_path.q[par.sim_T+path_length]       
+            sol_path.inv_w[par.sim_T+par.path_T:] = sol_path.inv_w[par.sim_T+par.path_T]
+            sol_path.q[par.sim_T+par.path_T:] = sol_path.q[par.sim_T+par.path_T]
+            sol_path.q_c[par.sim_T+par.path_T:] = sol_path.q_c[par.sim_T+par.path_T]
+            sol_path.q_m[par.sim_T+par.path_T:] = sol_path.q[par.sim_T+par.path_T]       
 
     ############################
     # Simulate Transition Path #
@@ -575,7 +575,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim_path.utility = np.zeros(par.simN)
 
         # c. States and choices
-        sim_shape_path = (par.sim_T + 50,par.simN)
+        sim_shape_path = (par.sim_T + par.path_T,par.simN) # NOTE the horizon
         sim_path.y = np.zeros(sim_shape_path)
         sim_path.m = np.zeros(sim_shape_path)
         sim_path.n = np.zeros(sim_shape_path)
@@ -585,7 +585,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         sim_path.a = np.zeros(sim_shape_path)
 
         # d. Income states
-        sim_path.state = np.zeros((par.sim_T + 50,par.simN),dtype=np.int_)  # sim_shape_path?
+        sim_path.state = np.zeros((par.sim_T + par.path_T,par.simN),dtype=np.int_)  # sim_shape_path?
 
     def simulate_path(self):
         '''Simulate a panel of households along a transition path'''
