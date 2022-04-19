@@ -45,35 +45,35 @@ def lifecycle(sim,sol,par,path=False):
             # Determine aggregate states (R and ph)
             if path:
                 R = par.path_R[t]
-                ph = par.path_ph[t]        
+                ph = par.path_ph[t]
             else:
                 R = par.R
                 ph = par.ph
             
             # a. beginning of period states
             if t == 0:
-                # Income
+                # i. Income
                 state_lag = markov.choice(rand[t,i], par.pi_cum) # Initialize from stationary distribution
                 state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:])
                 y[t,i] = grid_y[state[t,i]]
                 
-                # Housing
+                # ii. Housing
                 n[t,i] = trans.n_plus_func(sim.d0[i],par)
                 
-                # Cash on hand
-                m[t,i] = trans.m_plus_func(sim.a0[i],y[t,i],par,n[t,i],R,ph)
+                # iii. Cash on hand
+                m[t,i] = trans.m_plus_func(sim.a0[i],state_lag,par,sim.d0[i],R,ph) # Set initial income equal to 'state_lag'
 
             else:
-                # Income
+                # i. Income
                 state_lag = state[t-1,i] # last period value
                 state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:])
                 y[t,i] = grid_y[state[t,i]]
                 
-                # Housing
+                # ii. Housing
                 n[t,i] = trans.n_plus_func(d[t-1,i],par)
                 
-                # Cash on hand
-                m[t,i] = trans.m_plus_func(a[t-1,i],y[t,i],par,n[t,i],R,ph) # should this be y_t+1 instead?
+                # iii. Cash on hand
+                m[t,i] = trans.m_plus_func(a[t-1,i],y[t-1,i],par,n[t-1,i],par.path_R[t-1],par.path_ph[t-1])
             
             # b. optimal choices and post decision states - UPDATE THIS
             if path:
@@ -85,15 +85,15 @@ def lifecycle(sim,sol,par,path=False):
 @njit
 def optimal_choice_path(t,y,n,m,discrete,d,c,a,sol_path,par,ph): # Calculate the optimal choice
 
-    # Available cash on hand
-    x = trans.x_plus_func(m,n,ph,par,ph)
+    # a. Available cash on hand conditional on adjusting
+    x = trans.x_plus_func(m,n,ph,par,par.path_ph[t])
 
-    # a. discrete choice
+    # b. discrete choice
     inv_v_keep = linear_interp.interp_2d(par.grid_n,par.grid_m,sol_path.inv_v_keep[t,0,y],n,m)
     inv_v_adj = linear_interp.interp_1d(par.grid_x,sol_path.inv_v_adj[t,0,y],x)
     adjust = inv_v_adj > inv_v_keep
     
-    # b. continuous choices
+    # c. continuous choices
     if adjust:
 
         discrete[0] = 1 # This is just to compute the share of adjusters
@@ -106,7 +106,7 @@ def optimal_choice_path(t,y,n,m,discrete,d,c,a,sol_path,par,ph): # Calculate the
             par.grid_x,sol_path.c_adj[t,0,y],
             x)
 
-        tot = par.ph*d[0]+c[0]
+        tot = ph*d[0]+c[0]
         if tot > x: # Ensure that total consumption only add up to x
             d[0] *= x/tot
             c[0] *= x/tot
