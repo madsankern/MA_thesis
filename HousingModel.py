@@ -59,9 +59,9 @@ class HousingModelClass(ModelClass): # Rename
         par = self.par
 
         # a. Horizon
-        par.T = 50 # Number of iterations to find stationary solution
-        par.path_T = 100 # Length of model solve along the path
-        par.sim_T = 200 # Length of stationary simulation to ensure convergence
+        par.T = 200 # Number of iterations to find stationary solution
+        par.path_T = 200 # Length of model solve along the path
+        par.sim_T = 400 # Length of stationary simulation to ensure convergence
         
         # b. Preferences
         par.beta = 0.965
@@ -76,8 +76,8 @@ class HousingModelClass(ModelClass): # Rename
         par.deltaa = 0.15 # maintenence cost
 
         # d. Path for aggregate states
-        par.path_R = np.full(par.sim_T + par.path_T + par.T, par.R) # for impulse response
-        par.path_ph = np.full(par.sim_T + par.path_T + par.T, par.ph) # House price sequence
+        par.path_R = np.full(par.path_T + par.T, par.R) # for impulse response
+        par.path_ph = np.full(par.path_T + par.T, par.ph) # House price sequence
         par.R_drop = 0.002 # Drop in interest rates for shock
 
         par.pi = 0.0 # what is this
@@ -106,14 +106,14 @@ class HousingModelClass(ModelClass): # Rename
 
         # h. Grids
         par.Ny = 2 # update this
-        par.y_min = 0.45
-        par.y_max = 0.55
+        par.y_min = 0.8
+        par.y_max = 1.4
         par.Nn = 10
-        par.n_max = 0.15
+        par.n_max = 0.4
         par.Nm = 100
         par.m_max = 10.0    
         par.Nx = 100
-        par.x_max = par.m_max + (par.ph+0.5)*par.n_max
+        par.x_max = par.m_max + par.ph*par.n_max
         par.Na = 100
         par.a_max = par.m_max+1.0
 
@@ -123,7 +123,7 @@ class HousingModelClass(ModelClass): # Rename
         par.sigma_d0 = 0.2
         par.mu_a0 = 0.6
         par.sigma_a0 = 0.1 # variance of initial assets
-        par.simN = 400_000
+        par.simN = 100_000
         par.sim_seed = 217 #1998
         par.euler_cutoff = 0.02
 
@@ -162,7 +162,7 @@ class HousingModelClass(ModelClass): # Rename
 
         # a. States
         par.grid_y = nonlinspace(par.y_min,par.y_max,par.Ny,1.1)
-        par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.1)
+        par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.0)
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
         par.grid_pb = nonlinspace(par.pb_min,par.pb_max,par.Npb,1.1)
@@ -182,8 +182,11 @@ class HousingModelClass(ModelClass): # Rename
         # f. Matrix of income shocks
         sim.rand = np.zeros(shape=(par.sim_T,par.simN))
         sim_path.rand = np.zeros(shape=(par.path_T+par.sim_T,par.simN))
+
         sim.rand[:,:] = np.random.uniform(size=(par.sim_T,par.simN))
         sim_path.rand[:,:] = np.random.uniform(size=(par.path_T+par.sim_T,par.simN))
+
+        sim_path.rand[0,:] = sim.rand[-1,:]
 
     def checksum(self,simple=False,T=1): # update
         """ calculate and print checksum """
@@ -459,8 +462,9 @@ class HousingModelClass(ModelClass): # Rename
             par = model.par
             sol = model.sol
             sim = model.sim
+            sim_path = model.sim_path
 
-            simulate.lifecycle(sim,sol,par,path=False)
+            simulate.lifecycle(sim,sim_path,sol,par,path=False)
 
         toc = time.time()
         
@@ -481,20 +485,20 @@ class HousingModelClass(ModelClass): # Rename
         # NOTE the length of the time horizon
         
         # a. Keeper
-        keep_shape_path = (par.sim_T + par.path_T + par.T ,par.Npb,par.Ny,par.Nn,par.Nm)
+        keep_shape_path = (par.path_T + par.T ,par.Npb,par.Ny,par.Nn,par.Nm)
         sol_path.c_keep = np.zeros(keep_shape_path)
         sol_path.inv_v_keep = np.zeros(keep_shape_path)
         sol_path.inv_marg_u_keep = np.zeros(keep_shape_path)
 
         # b. Adjuster
-        adj_shape_path = (par.sim_T + par.path_T + par.T,par.Npb,par.Ny,par.Nx)
+        adj_shape_path = (par.path_T + par.T,par.Npb,par.Ny,par.Nx)
         sol_path.d_adj = np.zeros(adj_shape_path)
         sol_path.c_adj = np.zeros(adj_shape_path)
         sol_path.inv_v_adj = np.zeros(adj_shape_path)
         sol_path.inv_marg_u_adj = np.zeros(adj_shape_path)
 
         # c. Post decision
-        post_shape_path = (par.sim_T + par.path_T + par.T - 1,par.Npb,par.Ny,par.Nn,par.Na)
+        post_shape_path = (par.path_T + par.T - 1,par.Npb,par.Ny,par.Nn,par.Na)
         sol_path.inv_w = np.nan*np.zeros(post_shape_path)
         sol_path.q = np.nan*np.zeros(post_shape_path)
         sol_path.q_c = np.nan*np.zeros(post_shape_path)
@@ -506,8 +510,9 @@ class HousingModelClass(ModelClass): # Rename
 
         # a. Generate exogenous path of interest rates
         path.gen_path_R(self.par)
+        print(self.par.path_R)
 
-        for t in reversed(range(self.par.sim_T, self.par.sim_T + self.par.path_T + self.par.T)):
+        for t in reversed(range(self.par.path_T + self.par.T)):
 
             with jit(self) as model:
 
@@ -519,7 +524,7 @@ class HousingModelClass(ModelClass): # Rename
                 ph = par.path_ph[t]
                 
                 # ii. Last period
-                if t == (par.path_T+par.sim_T+par.T)-1:
+                if t == (par.path_T+par.T)-1:
 
                     last_period.solve(t,sol_path,par,ph) # modify this with the stationary solution
 
@@ -534,53 +539,28 @@ class HousingModelClass(ModelClass): # Rename
                     # ooo. Solve adjuster
                     nvfi.solve_adj(t,sol_path,par,ph)
 
-        # b. Append the solution to the initial steady state
+        # b. Replace end points with the 50'th iteration
         with jit(self) as model:
 
             par = self.par
             sol_path = self.sol_path
-            sol = self.sol
 
             # i. Keeper
-            sol_path.c_keep[0:par.sim_T] = sol.c_keep[0]
-            sol_path.inv_v_keep[0:par.sim_T] = sol.inv_v_keep[0]
-            sol_path.inv_marg_u_keep[0:par.sim_T] = sol.inv_marg_u_keep[0]
+            sol_path.c_keep[par.path_T:] = sol_path.c_keep[par.path_T]
+            sol_path.inv_v_keep[par.path_T:] = sol_path.inv_v_keep[par.path_T]
+            sol_path.inv_marg_u_keep[par.path_T:] = sol_path.inv_marg_u_keep[par.path_T]
 
             # ii. Adjuster
-            sol_path.d_adj[0:par.sim_T] = sol.d_adj[0]
-            sol_path.c_adj[0:par.sim_T] = sol.c_adj[0]
-            sol_path.inv_v_adj[0:par.sim_T] = sol.inv_v_adj[0]
-            sol_path.inv_marg_u_adj[0:par.sim_T] = sol.inv_marg_u_adj[0]
+            sol_path.d_adj[par.path_T:] = sol_path.d_adj[par.path_T]
+            sol_path.c_adj[par.path_T:] = sol_path.c_adj[par.path_T]
+            sol_path.inv_v_adj[par.path_T:] = sol_path.inv_v_adj[par.path_T]
+            sol_path.inv_marg_u_adj[par.path_T:] = sol_path.inv_marg_u_adj[par.path_T]
                 
             # iii. Post decision
-            sol_path.inv_w[0:par.sim_T] = sol.inv_w[0]
-            sol_path.q[0:par.sim_T] = sol.q[0]
-            sol_path.q_c[0:par.sim_T] = sol.q_c[0]
-            sol_path.q_m[0:par.sim_T] = sol.q[0]
-
-        # c. Replace end points with the 50'th iteration
-        with jit(self) as model:
-
-            par = self.par
-            sol_path = self.sol_path
-            sol = self.sol
-
-            # i. Keeper
-            sol_path.c_keep[par.sim_T+par.path_T:] = sol_path.c_keep[par.sim_T+par.path_T]
-            sol_path.inv_v_keep[par.sim_T+par.path_T:] = sol_path.inv_v_keep[par.sim_T+par.path_T]
-            sol_path.inv_marg_u_keep[par.sim_T+par.path_T:] = sol_path.inv_marg_u_keep[par.sim_T+par.path_T]
-
-            # ii. Adjuster
-            sol_path.d_adj[par.sim_T+par.path_T:] = sol_path.d_adj[par.sim_T+par.path_T]
-            sol_path.c_adj[par.sim_T+par.path_T:] = sol_path.c_adj[par.sim_T+par.path_T]
-            sol_path.inv_v_adj[par.sim_T+par.path_T] = sol_path.inv_v_adj[par.sim_T+par.path_T]
-            sol_path.inv_marg_u_adj[par.sim_T+par.path_T:] = sol_path.inv_marg_u_adj[par.sim_T+par.path_T]
-                
-            # iii. Post decision
-            sol_path.inv_w[par.sim_T+par.path_T:] = sol_path.inv_w[par.sim_T+par.path_T]
-            sol_path.q[par.sim_T+par.path_T:] = sol_path.q[par.sim_T+par.path_T]
-            sol_path.q_c[par.sim_T+par.path_T:] = sol_path.q_c[par.sim_T+par.path_T]
-            sol_path.q_m[par.sim_T+par.path_T:] = sol_path.q[par.sim_T+par.path_T]       
+            sol_path.inv_w[par.path_T:] = sol_path.inv_w[par.path_T]
+            sol_path.q[par.path_T:] = sol_path.q[par.path_T]
+            sol_path.q_c[par.path_T:] = sol_path.q_c[par.path_T]
+            sol_path.q_m[par.path_T:] = sol_path.q[par.path_T]       
 
     ############################
     # Simulate Transition Path #
@@ -592,7 +572,7 @@ class HousingModelClass(ModelClass): # Rename
         par = self.par
         sim_path = self.sim_path
 
-        # a. initial and final
+        # a. initial allocation
         sim_path.p0 = np.zeros(par.simN)
         sim_path.d0 = np.zeros(par.simN)
         sim_path.a0 = np.zeros(par.simN)
@@ -601,7 +581,7 @@ class HousingModelClass(ModelClass): # Rename
         sim_path.utility = np.zeros(par.simN)
 
         # c. States and choices
-        sim_shape_path = (par.sim_T + par.path_T,par.simN) # NOTE the horizon
+        sim_shape_path = (par.path_T,par.simN) # NOTE the horizon
         sim_path.y = np.zeros(sim_shape_path)
         sim_path.m = np.zeros(sim_shape_path)
         sim_path.n = np.zeros(sim_shape_path)
@@ -611,7 +591,7 @@ class HousingModelClass(ModelClass): # Rename
         sim_path.a = np.zeros(sim_shape_path)
 
         # d. Income states
-        sim_path.state = np.zeros((par.sim_T + par.path_T,par.simN),dtype=np.int_)  # sim_shape_path?
+        sim_path.state = np.zeros((par.path_T,par.simN),dtype=np.int_)
 
     def simulate_path(self):
         '''Simulate a panel of households along a transition path'''
@@ -619,10 +599,11 @@ class HousingModelClass(ModelClass): # Rename
         par = self.par
         sol_path = self.sol_path
         sim_path = self.sim_path
+        sim = self.sim # ss simulation
 
-        # a. Random initial allocation
-        sim_path.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing (discrete values)
-        sim_path.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
+        # a. Last period of ss simulation as initial allocation
+        sim_path.d0[:] = sim.d[-1]
+        sim_path.a0[:] = sim.a[-1]
 
         # b. call simulation function
         with jit(self) as model:
@@ -630,5 +611,6 @@ class HousingModelClass(ModelClass): # Rename
             par = self.par
             sol_path = self.sol_path
             sim_path = self.sim_path
+            sim = self.sim
 
-            simulate.lifecycle(sim_path,sol_path,par,path=True)
+            simulate.lifecycle(sim,sim_path,sol_path,par,path=True)
