@@ -71,13 +71,14 @@ class DurableConsumptionModelClass(ModelClass): # Rename
 
         # c. Prices and costs
         par.R = 1.03
-        par.ph = 6.247127525452337 # House price - rename to p, set to equilibrium
+        par.ph = 6.209736819654234 # House price - rename to p, set to equilibrium
         par.tau = 0.10 # can be removed
         par.deltaa = 0.15 # maintenence cost
 
         # d. Path for aggregate states
         par.path_R = np.full(par.sim_T + par.path_T + par.T, par.R) # for impulse response
         par.path_ph = np.full(par.sim_T + par.path_T + par.T, par.ph) # House price sequence
+        par.R_drop = 0.002 # Drop in interest rates for shock
 
         par.pi = 0.0 # what is this
         par.mu = 0.5 # what is this
