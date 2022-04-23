@@ -30,7 +30,7 @@ import path
 import simulate_path
 
 
-class DurableConsumptionModelClass(ModelClass): # Rename
+class HousingModelClass(ModelClass): # Rename
     
     #########
     # Setup #
@@ -95,7 +95,7 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.pi = np.array([1/2,1/2]) # stationary distribution
         par.pi_cum = np.array(np.cumsum(par.pi))
 
-        # f. Purchase price
+        # f. Purchase price - UPDATE THESE
         par.Npb = 2 # points in the grid
         par.pb_max = 5.0 # max value
         par.pb_min = 0.1 # min value
@@ -105,15 +105,15 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.taug = 0.0 # Gains tax
 
         # h. Grids
-        par.Ny = 2 #6 # update this
-        par.y_min = 0.3
-        par.y_max = 1.0
+        par.Ny = 2 # update this
+        par.y_min = 0.45
+        par.y_max = 0.55
         par.Nn = 10
         par.n_max = 0.15
         par.Nm = 100
         par.m_max = 10.0    
         par.Nx = 100
-        par.x_max = par.m_max + par.ph*par.n_max # Add house price
+        par.x_max = par.m_max + (par.ph+0.5)*par.n_max
         par.Na = 100
         par.a_max = par.m_max+1.0
 
@@ -123,8 +123,8 @@ class DurableConsumptionModelClass(ModelClass): # Rename
         par.sigma_d0 = 0.2
         par.mu_a0 = 0.6
         par.sigma_a0 = 0.1 # variance of initial assets
-        par.simN = 100_000
-        par.sim_seed = 1998
+        par.simN = 400_000
+        par.sim_seed = 217 #1998
         par.euler_cutoff = 0.02
 
         # j. Misc
@@ -140,13 +140,14 @@ class DurableConsumptionModelClass(ModelClass): # Rename
     def allocate(self):
         """ allocate model, i.e. create grids and allocate solution and simluation arrays """
 
+        # a. Grids
         self.create_grids()
 
-        # a. Steady state
+        # b. Steady state
         self.solve_prep()
         self.simulate_prep()
         
-        # b. Transition path
+        # c. Transition path
         self.solve_path_prep()
         self.simulate_path_prep()
             
@@ -368,15 +369,39 @@ class DurableConsumptionModelClass(ModelClass): # Rename
                         assert np.all((sol.c_adj[t] >= 0) & (np.isnan(sol.c_adj[t]) == False)), t
                         assert np.all((sol.inv_v_adj[t] >= 0) & (np.isnan(sol.inv_v_adj[t]) == False)), t
 
-                # Compute distance to previous iteration
+                # iii. Compute distance to previous iteration
                 if t < par.T-1:
                     # sol.dist[t] = np.abs(np.max(sol.c_keep[t+1,:,:,:,:] - sol.c_keep[t,:,:,:,:]))
                     sol.dist[t] = np.abs(np.max(sol.c_adj[t+1,:,:,:] - sol.c_adj[t,:,:,:]))
 
-                # iii. print
+                # iv. print
                 toc = time.time()
                 if par.do_print or par.do_print_period:
                     print(f' t = {t} solved in {toc-tic:.1f} secs')
+
+        # b. Set last iteration in all periods
+        with jit(self) as model:
+
+            par = self.par
+            sol_path = self.sol_path
+            sol = self.sol
+
+            # i. Keeper
+            sol.c_keep[:] = sol.c_keep[0]
+            sol.inv_v_keep[:] = sol.inv_v_keep[0]
+            sol.inv_marg_u_keep[:] = sol.inv_marg_u_keep[0]
+
+            # ii. Adjuster
+            sol.d_adj[:] = sol.d_adj[0]
+            sol.c_adj[:] = sol.c_adj[0]
+            sol.inv_v_adj[:] = sol.inv_v_adj[0]
+            sol.inv_marg_u_adj[:] = sol.inv_marg_u_adj[0]
+                
+            # iii. Post decision
+            sol.inv_w[:] = sol.inv_w[0]
+            sol.q[:] = sol.q[0]
+            sol.q_c[:] = sol.q_c[0]
+            sol.q_m[:] = sol.q[0]        
 
     ############
     # simulate #
