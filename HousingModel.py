@@ -464,7 +464,7 @@ class HousingModelClass(ModelClass): # Rename
             sim = model.sim
             sim_path = model.sim_path
 
-            simulate.lifecycle(sim,sim_path,sol,par,path=False)
+            simulate.lifecycle(sim,sol,par,path=False)
 
         toc = time.time()
         
@@ -504,13 +504,11 @@ class HousingModelClass(ModelClass): # Rename
         sol_path.q_c = np.nan*np.zeros(post_shape_path)
         sol_path.q_m = np.nan*np.zeros(post_shape_path)
 
-
     def solve_path(self): # Add options for type of shock
         '''Solve the household problem along a transition path'''
 
         # a. Generate exogenous path of interest rates
         path.gen_path_R(self.par)
-        print(self.par.path_R)
 
         for t in reversed(range(self.par.path_T + self.par.T)):
 
@@ -613,4 +611,4 @@ class HousingModelClass(ModelClass): # Rename
             sim_path = self.sim_path
             sim = self.sim
 
-            simulate.lifecycle(sim,sim_path,sol_path,par,path=True)
+            simulate.lifecycle(sim_path,sol_path,par,path=True)
