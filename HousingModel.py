@@ -60,7 +60,7 @@ class HousingModelClass(ModelClass): # Rename
 
         # a. Horizon
         par.T = 200 # Number of iterations to find stationary solution
-        par.path_T = 200 # Length of model solve along the path
+        par.path_T = 400 # Length of model solve along the path
         par.sim_T = 400 # Length of stationary simulation to ensure convergence
         
         # b. Preferences
@@ -571,7 +571,6 @@ class HousingModelClass(ModelClass): # Rename
         sim_path = self.sim_path
 
         # a. initial allocation
-        sim_path.p0 = np.zeros(par.simN)
         sim_path.d0 = np.zeros(par.simN)
         sim_path.a0 = np.zeros(par.simN)
 

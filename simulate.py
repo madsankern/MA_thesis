@@ -61,7 +61,7 @@ def lifecycle(sim,sol,par,path=False):
                 n[t,i] = trans.n_plus_func(sim.d0[i],par)
                 
                 # iii. Cash on hand
-                m[t,i] = trans.m_plus_func(sim.a0[i],state_lag,par,n[t,i],R,ph) # Set initial income equal to 'state_lag'
+                m[t,i] = trans.m_plus_func(sim.a0[i],state_lag,par,n[t,i],par.R,par.ph) # Set initial income equal to 'state_lag'
 
             else:
                 # i. Income
@@ -118,7 +118,7 @@ def optimal_choice(t,y,n,m,discrete,d,c,a,sol,par,ph,path): # Calculate the opti
             
         discrete[0] = 0
 
-        d[0] = n
+        d[0] = n # set housing equal to last period if no adjust
 
         c[0] = linear_interp.interp_2d(
             par.grid_n,par.grid_m,sol.c_keep[t,0,y],
