@@ -30,6 +30,7 @@ def lifecycle(sim,sol,par,path=False):
     grid_y = par.grid_y
     state = sim.state
     rand = sim.rand
+    rand0 = sim.rand0
 
     # Determine simulation length
     if path:
@@ -49,11 +50,17 @@ def lifecycle(sim,sol,par,path=False):
                 R = par.R
                 ph = par.ph
             
+            # # CHANGE THIS BACK AFTER DEBUGGING
+            # R = par.path_R[t]
+            # ph = par.ph
+            
             # a. beginning of period states
             if t == 0:
 
                 # i. Income
-                state_lag = markov.choice(rand[t,i], par.pi_cum) # Initialize from stationary distribution
+                state_lag = markov.choice(rand0[i], par.pi_cum) # Initialize from stationary distribution
+                y0 = grid_y[state_lag] # Income in period -1
+
                 state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:])
                 y[t,i] = grid_y[state[t,i]]
                 
@@ -61,7 +68,7 @@ def lifecycle(sim,sol,par,path=False):
                 n[t,i] = trans.n_plus_func(sim.d0[i],par)
                 
                 # iii. Cash on hand
-                m[t,i] = trans.m_plus_func(sim.a0[i],state_lag,par,n[t,i],par.R,par.ph) # Set initial income equal to 'state_lag'
+                m[t,i] = trans.m_plus_func(sim.a0[i],y0,par,n[t,i],par.R,par.ph) # Set initial income equal to 'state_lag'
 
             else:
                 # i. Income
@@ -73,7 +80,7 @@ def lifecycle(sim,sol,par,path=False):
                 n[t,i] = trans.n_plus_func(d[t-1,i],par)
                 
                 # iii. Cash on hand
-                m[t,i] = trans.m_plus_func(a[t-1,i],y[t-1,i],par,n[t-1,i],par.path_R[t-1],par.path_ph[t-1])
+                m[t,i] = trans.m_plus_func(a[t-1,i],y[t-1,i],par,n[t,i],par.path_R[t-1],par.path_ph[t-1])
             
             # b. optimal choices and post decision states
             optimal_choice(t,state[t,i],n[t,i],m[t,i],discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],sol,par,ph,path)
@@ -82,11 +89,12 @@ def lifecycle(sim,sol,par,path=False):
 def optimal_choice(t,y,n,m,discrete,d,c,a,sol,par,ph,path): # Calculate the optimal choice
 
     # No need to iterate over t when simulating in ss
-    if path == False:
-        t = 0
+    # if path == False:
+    #     t = 0
+    t = 0
 
     # Available cash on hand
-    x = trans.x_plus_func(m,n,par.ph,par,ph)
+    x = trans.x_plus_func(m,n,par.ph,par,ph) # second argument is pb!
 
     # a. discrete choice
     inv_v_keep = linear_interp.interp_2d(par.grid_n,par.grid_m,sol.inv_v_keep[t,0,y],n,m)

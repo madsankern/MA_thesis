@@ -181,12 +181,13 @@ class HousingModelClass(ModelClass): # Rename
 
         # f. Matrix of income shocks
         sim.rand = np.zeros(shape=(par.sim_T,par.simN))
-        sim_path.rand = np.zeros(shape=(par.path_T+par.sim_T,par.simN))
+        sim_path.rand = np.zeros(shape=(par.path_T,par.simN))
 
         sim.rand[:,:] = np.random.uniform(size=(par.sim_T,par.simN))
-        sim_path.rand[:,:] = np.random.uniform(size=(par.path_T+par.sim_T,par.simN))
-
-        sim_path.rand[0,:] = sim.rand[-1,:]
+        sim_path.rand[:,:] = np.random.uniform(size=(par.path_T,par.simN))
+        
+        sim.rand0 = np.random.uniform(size=par.simN) # Initial y state
+        sim_path.rand0 = sim.rand[-1,:] # use last period for path
 
     def checksum(self,simple=False,T=1): # update
         """ calculate and print checksum """
