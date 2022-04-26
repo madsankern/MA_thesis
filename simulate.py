@@ -68,7 +68,7 @@ def lifecycle(sim,sol,par,path=False):
                 n[t,i] = trans.n_plus_func(sim.d0[i],par)
                 
                 # iii. Cash on hand
-                m[t,i] = trans.m_plus_func(sim.a0[i],y0,par,n[t,i],par.R,par.ph) # Set initial income equal to 'state_lag'
+                m[t,i] = trans.m_plus_func(sim.a0[i],y0,par,n[t,i],par.R,par.ph) # Set initial income equal to 'state_lag', use ss prices
 
             else:
                 # i. Income
@@ -89,9 +89,8 @@ def lifecycle(sim,sol,par,path=False):
 def optimal_choice(t,y,n,m,discrete,d,c,a,sol,par,ph,path): # Calculate the optimal choice
 
     # No need to iterate over t when simulating in ss
-    # if path == False:
-    #     t = 0
-    t = 0
+    if path == False:
+        t = 0
 
     # Available cash on hand
     x = trans.x_plus_func(m,n,par.ph,par,ph) # second argument is pb!

@@ -60,8 +60,8 @@ class HousingModelClass(ModelClass): # Rename
 
         # a. Horizon
         par.T = 200 # Number of iterations to find stationary solution
-        par.path_T = 400 # Length of model solve along the path
-        par.sim_T = 400 # Length of stationary simulation to ensure convergence
+        par.path_T = 200 # Length of model solve along the path
+        par.sim_T = 200 # Length of stationary simulation to ensure convergence
         
         # b. Preferences
         par.beta = 0.965
@@ -71,7 +71,7 @@ class HousingModelClass(ModelClass): # Rename
 
         # c. Prices and costs
         par.R = 1.03
-        par.ph = 6.209736819654234 # House price - rename to p, set to equilibrium
+        par.ph = 7.0 #6.209736819654234 # House price - rename to p, set to equilibrium
         par.tau = 0.10 # can be removed
         par.deltaa = 0.15 # maintenence cost
 
