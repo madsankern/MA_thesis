@@ -48,15 +48,14 @@ def solve_adj(t,sol,par,ph):
     rho = par.rho
 
     # print(inv_v_keep)
+    # loop over pb here
+    for i_pb in prange(par.Npb):
 
-    # loop over outer states
-    for i_y in prange(par.Ny): #prange
-
-        # loop over pb here
-        for i_pb in range(par.Npb):
+        # loop over outer states
+        for i_y in prange(par.Ny): #prange
             
             # loop over x state
-            for i_x in range(par.Nx):
+            for i_x in prange(par.Nx):
                 
                 # a. cash-on-hand - this is fine
                 x = par.grid_x[i_x]

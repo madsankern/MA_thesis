@@ -21,7 +21,7 @@ def solve_keep(t,sol,par):
     q_c = sol.q_c[t]
     q_m = sol.q_m[t]
 
-    for i_pb in range(par.Npb):
+    for i_pb in prange(par.Npb):
 
         for i_y in prange(par.Ny):
             
@@ -30,7 +30,7 @@ def solve_keep(t,sol,par):
 
             # loop over pb here
 
-            for i_n in range(par.Nn):
+            for i_n in prange(par.Nn):
                 
                 # use euler equation
                 n = par.grid_n[i_n]

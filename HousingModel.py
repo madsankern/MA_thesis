@@ -59,7 +59,7 @@ class HousingModelClass(ModelClass): # Rename
         par = self.par
 
         # a. Horizon
-        par.T = 200 # Number of iterations to find stationary solution
+        par.T = 80 # NOTE find out what this should be # Number of iterations to find stationary solution
         par.path_T = 200 # Length of model solve along the path
         par.sim_T = 200 # Length of stationary simulation to ensure convergence
         
@@ -96,9 +96,9 @@ class HousingModelClass(ModelClass): # Rename
         par.pi_cum = np.array(np.cumsum(par.pi))
 
         # f. Purchase price - UPDATE THESE
-        par.Npb = 2 # points in the grid
-        par.pb_max = 5.0 # max value
-        par.pb_min = 0.1 # min value
+        par.Npb = 50 # points in the grid
+        par.pb_max = 9.0 # max value
+        par.pb_min = 6.0 # min value
         
         # g. Taxes
         par.tauc = 0.0 # Wealth tax
@@ -238,6 +238,7 @@ class HousingModelClass(ModelClass): # Rename
         fastpar['Nm'] = 3
         fastpar['Nx'] = 3
         fastpar['Na'] = 3
+        fastpar['Npb'] = 3
         fastpar['simN'] = 2
 
         # b. Apply
@@ -255,8 +256,8 @@ class HousingModelClass(ModelClass): # Rename
         self.simulate()
 
         # Add solve_path and simulate_path - check why this seems to be wrong
-        # self.solve_path()
-        # self.simulate_path()
+        self.solve_path()
+        self.simulate_path()
 
         # e. Reiterate
         for key,val in fastpar.items():
@@ -309,7 +310,7 @@ class HousingModelClass(ModelClass): # Rename
 
         for t in reversed(range(self.par.T)):
             
-            self.par.t = t
+            self.par.t = t # what does this do?
 
             with jit(self) as model:
 
