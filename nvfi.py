@@ -69,7 +69,7 @@ def solve_adj(t,sol,par,ph):
 
                 # b. optimal choice
                 d_allow = par.grid_n[par.grid_n <= x / ph] # House sizes that can be afforded
-                value_of_choice = np.empty(len(d_allow)) # Initialize
+                value_of_choice = np.empty(len(d_allow)) # Initialize before loop instead!
 
                 for i_d,house in enumerate(d_allow): # vectorize this loop!
                     

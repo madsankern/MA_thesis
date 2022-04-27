@@ -165,7 +165,7 @@ class HousingModelClass(ModelClass): # Rename
         par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.0)
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
-        par.grid_pb = nonlinspace(par.pb_min,par.pb_max,par.Npb,1.1)
+        par.grid_pb = nonlinspace(par.pb_min,par.pb_max,par.Npb,1.0)
         
         # b. Post-decision states
         par.grid_a = nonlinspace(0,par.a_max,par.Na,1.1)
@@ -276,7 +276,7 @@ class HousingModelClass(ModelClass): # Rename
         sol = self.sol
 
         # a. Keeper
-        keep_shape = (par.T,par.Npb,par.Ny,par.Nn,par.Nm)
+        keep_shape = (par.T,par.Npb,par.Ny,par.Nn,par.Nm) # Remove pb, as this is not needed to loop over
         sol.c_keep = np.zeros(keep_shape)
         sol.inv_v_keep = np.zeros(keep_shape)
         sol.inv_marg_u_keep = np.zeros(keep_shape)
@@ -419,7 +419,7 @@ class HousingModelClass(ModelClass): # Rename
         sim = self.sim
 
         # a. Initial and final
-        sim.p0 = np.zeros(par.simN)
+        sim.p0 = np.zeros(par.simN) # remove
         sim.d0 = np.zeros(par.simN)
         sim.a0 = np.zeros(par.simN)
 
@@ -435,6 +435,7 @@ class HousingModelClass(ModelClass): # Rename
         sim.d = np.zeros(sim_shape)
         sim.c = np.zeros(sim_shape)
         sim.a = np.zeros(sim_shape)
+        sim.pb = np.zeros(sim_shape)
         
         # d. Euler errors
         euler_shape = (par.sim_T-1,par.simN)
@@ -457,6 +458,10 @@ class HousingModelClass(ModelClass): # Rename
         # a. Random initial allocation of housing and cash on hand
         sim.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing (discrete values)
         sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
+
+        # b. Ensure that paths are equal to the ss values
+        par.path_R[:] = par.R
+        par.path_ph[:] = par.ph
 
         # b. call
         with jit(self) as model:
@@ -487,20 +492,20 @@ class HousingModelClass(ModelClass): # Rename
         # NOTE the length of the time horizon
         
         # a. Keeper
-        keep_shape_path = (par.path_T + par.T ,par.Npb,par.Ny,par.Nn,par.Nm)
+        keep_shape_path = (par.path_T+par.T,par.Npb,par.Ny,par.Nn,par.Nm)
         sol_path.c_keep = np.zeros(keep_shape_path)
         sol_path.inv_v_keep = np.zeros(keep_shape_path)
         sol_path.inv_marg_u_keep = np.zeros(keep_shape_path)
 
         # b. Adjuster
-        adj_shape_path = (par.path_T + par.T,par.Npb,par.Ny,par.Nx)
+        adj_shape_path = (par.path_T+par.T,par.Npb,par.Ny,par.Nx)
         sol_path.d_adj = np.zeros(adj_shape_path)
         sol_path.c_adj = np.zeros(adj_shape_path)
         sol_path.inv_v_adj = np.zeros(adj_shape_path)
         sol_path.inv_marg_u_adj = np.zeros(adj_shape_path)
 
         # c. Post decision
-        post_shape_path = (par.path_T + par.T - 1,par.Npb,par.Ny,par.Nn,par.Na)
+        post_shape_path = (par.path_T+par.T-1,par.Npb,par.Ny,par.Nn,par.Na)
         sol_path.inv_w = np.nan*np.zeros(post_shape_path)
         sol_path.q = np.nan*np.zeros(post_shape_path)
         sol_path.q_c = np.nan*np.zeros(post_shape_path)
@@ -588,6 +593,7 @@ class HousingModelClass(ModelClass): # Rename
         sim_path.d = np.zeros(sim_shape_path)
         sim_path.c = np.zeros(sim_shape_path)
         sim_path.a = np.zeros(sim_shape_path)
+        sim_path.pb = np.zeros(sim_shape_path)
 
         # d. Income states
         sim_path.state = np.zeros((par.path_T,par.simN),dtype=np.int_)
