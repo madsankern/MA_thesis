@@ -38,7 +38,7 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
             for i_n in range(par.Nn):
 
                 # a. permanent income and durable stock
-                y = par.grid_y[i_y] # can be removed
+                y = par.grid_y[i_y]
                 n = par.grid_n[i_n]
 
                 # b. initialize at zero - why?
@@ -47,15 +47,15 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
                     q[i_pb,i_y,i_n,i_a] = 0.0
 
                 # c. Loop over income values
-                for ishock in range(len(par.grid_y)): # rename ishock to something clearer
+                for ishock in range(len(par.grid_y)): # rename ishock to something clearer, i_y
 
                     # ii. next-period income and durables
                     y_plus = par.grid_y[ishock]
                     n_plus = trans.n_plus_func(n,par)
 
                     # iii. prepare interpolators - what is this for?
-                    prep_keep = linear_interp.interp_3d_prep(par.grid_y,par.grid_n,y_plus,n_plus,par.Na)
-                    prep_adj = linear_interp.interp_2d_prep(par.grid_y,y_plus,par.Na)
+                    prep_keep = linear_interp.interp_2d_prep(par.grid_n,n_plus,par.Na)
+                    prep_adj = linear_interp.interp_1d_prep(par.Na)
 
                     # iv. weight of each income shock by Markov probabilities
                     weight = par.p_mat[i_y,ishock]
@@ -64,14 +64,14 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
                     for i_a in range(par.Na):
             
                         m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],y_plus,par,n,R,ph)
-                        x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,pb,par,ph) # Add pb to the function in trans.py
+                        x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,pb,par,ph)
                     
                     # vi. interpolate
-                    linear_interp.interp_3d_only_last_vec_mon(prep_keep,par.grid_y,par.grid_n,par.grid_m,sol.inv_v_keep[t+1, i_pb],y_plus,n_plus,m_plus,inv_v_keep_plus)
-                    linear_interp.interp_2d_only_last_vec_mon(prep_adj,par.grid_y,par.grid_x,sol.inv_v_adj[t+1, i_pb],y_plus,x_plus,inv_v_adj_plus)
-                    if compute_q: # check this
-                        linear_interp.interp_3d_only_last_vec_mon_rep(prep_keep,par.grid_y,par.grid_n,par.grid_m,sol.inv_marg_u_keep[t+1 , i_pb],y_plus,n_plus,m_plus,inv_marg_u_keep_plus)
-                        linear_interp.interp_2d_only_last_vec_mon_rep(prep_adj,par.grid_y,par.grid_x,sol.inv_marg_u_adj[t+1, i_pb],y_plus,x_plus,inv_marg_u_adj_plus)
+                    linear_interp.interp_2d_only_last_vec_mon(prep_keep,par.grid_n,par.grid_m,sol.inv_v_keep[t+1,i_pb,ishock],n_plus,m_plus,inv_v_keep_plus)
+                    linear_interp.interp_1d_vec_mon(prep_adj,par.grid_x,sol.inv_v_adj[t+1,i_pb,ishock],x_plus,inv_v_adj_plus)
+                    if compute_q:
+                        linear_interp.interp_2d_only_last_vec_mon_rep(prep_keep,par.grid_n,par.grid_m,sol.inv_marg_u_keep[t+1,i_pb,ishock],n_plus,m_plus,inv_marg_u_keep_plus)
+                        linear_interp.interp_1d_vec_mon_rep(prep_adj,par.grid_x,sol.inv_marg_u_adj[t+1,i_pb,ishock],x_plus,inv_marg_u_adj_plus)
                         
                     # vii. max and accumulate.
                     if compute_q:
