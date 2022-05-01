@@ -113,13 +113,13 @@ def optimal_choice(t,y,n,m,discrete,d,c,a,pb,sol,par,ph,path,pb_lag): # Calculat
         discrete[0] = 1 # This is just to compute the share of adjusters
         pb[0] = pb_adj # Update purchase price
         
-        d[0] = linear_interp.interp_1d(
-            par.grid_x,sol.d_adj[t,0,y],
-            x)
+        d[0] = linear_interp.interp_2d(
+            par.grid_pb,par.grid_x,sol.d_adj[t,:,y],
+            pb[0],x)
 
-        c[0] = linear_interp.interp_1d(
-            par.grid_x,sol.c_adj[t,0,y],
-            x)
+        c[0] = linear_interp.interp_2d(
+            par.grid_pb,par.grid_x,sol.c_adj[t,:,y],
+            pb[0],x)
 
         tot = ph*d[0]+c[0]
         if tot > x: # Ensure that total consumption only add up to x
