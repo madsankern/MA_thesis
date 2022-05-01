@@ -13,11 +13,11 @@ import trans
 import utility
 
 @njit(parallel=True)
-def lifecycle(sim,sol,par,path=False):
-    """ simulate a panel of households
+def monte_carlo(sim,sol,par,path=False):
+    """ Simulate a panel of households using Monte Carlo
     
     Args:
-        path (bool,optional): simulate along a transition path
+        path (bool,optional): Simulate along a transition path
      """
 
     y = sim.y
