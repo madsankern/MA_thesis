@@ -97,15 +97,16 @@ def optimal_choice(t,y,n,m,discrete,d,c,a,pb,sol,par,ph,path,pb_lag): # Calculat
         t = 0
 
     # Available cash on hand
-    x = trans.x_plus_func(m,n,par.ph,par,ph) # second argument is pb!
+    x = trans.x_plus_func(m,n,pb_lag,par,ph)
     
     # House purchase price if adjusting
     pb_adj = ph
 
     # a. Find max of keeper and adjuster (discrete choice)
-    inv_v_keep = linear_interp.interp_2d(par.grid_n,par.grid_m,sol.inv_v_keep[t,0,y],n,m)
+    inv_v_keep = linear_interp.interp_3d(par.grid_pb,par.grid_n,par.grid_m,sol.inv_v_keep[t,:,y],pb_lag,n,m) # okay to use index 0 for pb here?
     inv_v_adj = linear_interp.interp_2d(par.grid_pb,par.grid_x,sol.inv_v_adj[t,:,y],pb_adj,x) # added pb
     adjust = inv_v_adj > inv_v_keep
+    # print(inv_v_adj - inv_v_keep)
     
     # b. Find implied durable and non-durable consumption
     if adjust:
@@ -128,7 +129,7 @@ def optimal_choice(t,y,n,m,discrete,d,c,a,pb,sol,par,ph,path,pb_lag): # Calculat
             a[0] = 0.0
         else:
             a[0] = x - tot
-            
+                            
     else:
             
         discrete[0] = 0
@@ -136,9 +137,9 @@ def optimal_choice(t,y,n,m,discrete,d,c,a,pb,sol,par,ph,path,pb_lag): # Calculat
 
         d[0] = n # set housing equal to last period if no adjust
 
-        c[0] = linear_interp.interp_2d(
-            par.grid_n,par.grid_m,sol.c_keep[t,0,y],
-            n,m)
+        c[0] = linear_interp.interp_3d(
+            par.grid_pb,par.grid_n,par.grid_m,sol.c_keep[t,:,y],
+            pb_lag,n,m)
 
         if c[0] > m: 
             c[0] = m

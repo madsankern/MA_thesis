@@ -95,12 +95,12 @@ class HousingModelClass(ModelClass): # Rename
 
         # f. Purchase price - UPDATE THESE
         par.Npb = 50
-        par.pb_max = 9.0
-        par.pb_min = 6.0
+        par.pb_max = 8.0
+        par.pb_min = 7.0
         
         # g. Taxes
         par.tauc = 0.0 # Wealth tax
-        par.taug = 0.0 # Gains tax
+        par.taug = 0.01 # Gains tax
 
         # h. Grids
         par.Ny = 2 # update this
