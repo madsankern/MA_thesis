@@ -3,22 +3,19 @@ from numba import njit
 
 # from consav import markov
 
-# Durable
+# a. Housing state
 @njit(fastmath=True)
 def n_plus_func(d,par):
-    n_plus = d # no depreciation
-    # n_plus = np.fmin(n_plus,par.n_max) # upper bound, can be removed
+    n_plus = d
     return n_plus
 
-# Cash
+# b. Cash on hand when keeping
 @njit(fastmath=True)
 def m_plus_func(a,y_plus,par,n,R,ph):
-    # Added separate interest rate
-
     m_plus = R*a + y_plus - par.deltaa*n - par.tauc*ph*n
     return m_plus
 
-# Cash when adjusting
+# c. Cash on hand when adjusting
 @njit(fastmath=True)
 def x_plus_func(m_plus,n_plus,pb,par,ph):
     return m_plus + ph*n_plus - par.taug*n_plus*(pb - ph)
