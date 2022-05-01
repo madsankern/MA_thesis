@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """DurableConsumptionModel
-
 Solve a consumption-saving model with a non-durable numeraire and durable housing
-
 """
 
 ##############
@@ -71,7 +69,7 @@ class HousingModelClass(ModelClass): # Rename
 
         # c. Prices and costs
         par.R = 1.03
-        par.ph = 7.0 #6.209736819654234 # House price - rename to p, set to equilibrium
+        par.ph = 7.0 # House price - rename to p, set to equilibrium
         par.tau = 0.10 # can be removed
         par.deltaa = 0.15 # maintenence cost
 
@@ -96,9 +94,9 @@ class HousingModelClass(ModelClass): # Rename
         par.pi_cum = np.array(np.cumsum(par.pi))
 
         # f. Purchase price - UPDATE THESE
-        par.Npb = 50 # points in the grid
-        par.pb_max = 9.0 # max value
-        par.pb_min = 6.0 # min value
+        par.Npb = 50
+        par.pb_max = 9.0
+        par.pb_min = 6.0
         
         # g. Taxes
         par.tauc = 0.0 # Wealth tax
