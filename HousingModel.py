@@ -57,7 +57,7 @@ class HousingModelClass(ModelClass): # Rename
         par = self.par
 
         # a. Horizon
-        par.T = 80 # NOTE find out what this should be # Number of iterations to find stationary solution
+        par.T = 80 # NOTE find out what this should be, Number of iterations to find stationary solution
         par.path_T = 200 # Length of model solve along the path
         par.sim_T = 200 # Length of stationary simulation to ensure convergence
         
@@ -70,16 +70,13 @@ class HousingModelClass(ModelClass): # Rename
         # c. Prices and costs
         par.R = 1.03
         par.ph = 7.0 # House price - rename to p, set to equilibrium
-        par.tau = 0.10 # can be removed
         par.deltaa = 0.15 # maintenence cost
+        par.phi = 0.1 # downpayment fraction
 
         # d. Path for aggregate states
         par.path_R = np.full(par.path_T + par.T, par.R) # for impulse response
         par.path_ph = np.full(par.path_T + par.T, par.ph) # House price sequence
         par.R_drop = 0.002 # Drop in interest rates for shock
-
-        par.pi = 0.0 # what is this
-        par.mu = 0.5 # what is this
 
         # e. Markov process income
         par.p_12 = 0.33
@@ -93,19 +90,19 @@ class HousingModelClass(ModelClass): # Rename
         par.pi = np.array([1/2,1/2]) # stationary distribution
         par.pi_cum = np.array(np.cumsum(par.pi))
 
-        # f. Purchase price - UPDATE THESE
-        par.Npb = 50
+        # f. Purchase price - Ensure eq. price is in the interval
+        par.Npb = 2
         par.pb_max = 8.0
         par.pb_min = 7.0
         
         # g. Taxes
         par.tauc = 0.0 # Wealth tax
-        par.taug = 0.01 # Gains tax
+        par.taug = 0.0 # Gains tax
 
         # h. Grids
         par.Ny = 2 # update this
-        par.y_min = 0.8
-        par.y_max = 1.4
+        par.y_min = 0.7
+        par.y_max = 1.3
         par.Nn = 10
         par.n_max = 0.4
         par.Nm = 100
@@ -115,12 +112,12 @@ class HousingModelClass(ModelClass): # Rename
         par.Na = 100
         par.a_max = par.m_max+1.0
 
-        # i. Simulation - these must be based on steady state
+        # i. Simulation parameters - these must be based on steady state
         par.sigma_p0 = 0.2
         par.mu_d0 = 0.8
         par.sigma_d0 = 0.2
         par.mu_a0 = 0.6
-        par.sigma_a0 = 0.1 # variance of initial assets
+        par.sigma_a0 = 0.1
         par.simN = 100_000
         par.sim_seed = 217 #1998
         par.euler_cutoff = 0.02
@@ -224,7 +221,7 @@ class HousingModelClass(ModelClass): # Rename
 
         tic = time.time()
 
-        # a. Define
+        # a. Define parameters
         fastpar = dict()
         fastpar['do_print'] = False
         fastpar['do_print_period'] = False
@@ -239,7 +236,7 @@ class HousingModelClass(ModelClass): # Rename
         fastpar['Npb'] = 3
         fastpar['simN'] = 2
 
-        # b. Apply
+        # b. Apply parameters
         for key,val in fastpar.items():
             prev = getattr(par,key)
             setattr(par,key,val)
@@ -247,17 +244,15 @@ class HousingModelClass(ModelClass): # Rename
 
         self.allocate()
 
-        # c. Solve
+        # c. Solve and simulate in ss
         self.solve(do_assert=False)
-
-        # d. Simulate
         self.simulate()
 
-        # Add solve_path and simulate_path - check why this seems to be wrong
+        # d. Solve and simulate along path
         self.solve_path()
         self.simulate_path()
 
-        # e. Reiterate
+        # e. Reiterate parameters
         for key,val in fastpar.items():
             setattr(par,key,val)
 
@@ -308,14 +303,14 @@ class HousingModelClass(ModelClass): # Rename
 
         for t in reversed(range(self.par.T)):
             
-            self.par.t = t # what does this do?
+            self.par.t = t
 
             with jit(self) as model:
 
                 par = model.par
                 sol = model.sol
                 
-                # i. last period
+                # i. Last period
                 if t == par.T-1:
 
                     last_period.solve(t,sol,par,par.ph)
@@ -327,10 +322,10 @@ class HousingModelClass(ModelClass): # Rename
                         assert np.all((sol.c_adj[t] >= 0) & (np.isnan(sol.c_adj[t]) == False))
                         assert np.all((sol.inv_v_adj[t] >= 0) & (np.isnan(sol.inv_v_adj[t]) == False))
 
-                # ii. all other periods
+                # ii. All other periods
                 else:
                     
-                    # o. compute post-decision functions
+                    # o. Compute post-decision functions
                     tic_w = time.time()
                     
                     post_decision.compute_wq(t,par.R,sol,par,par.ph,compute_q=True)
@@ -343,7 +338,7 @@ class HousingModelClass(ModelClass): # Rename
                     assert np.all((sol.inv_w[t] > 0) & (np.isnan(sol.inv_w[t]) == False)), t 
                     assert np.all((sol.q[t] > 0) & (np.isnan(sol.q[t]) == False)), t
 
-                    # oo. solve keeper problem
+                    # oo. Solve keeper problem
                     tic_keep = time.time()
 
                     negm.solve_keep(t,sol,par)
@@ -357,7 +352,7 @@ class HousingModelClass(ModelClass): # Rename
                         assert np.all((sol.c_keep[t] >= 0) & (np.isnan(sol.c_keep[t]) == False)), t
                         assert np.all((sol.inv_v_keep[t] >= 0) & (np.isnan(sol.inv_v_keep[t]) == False)), t
 
-                    # ooo. solve adjuster problem
+                    # ooo. Solve adjuster problem
                     tic_adj = time.time()
                     
                     nvfi.solve_adj(t,sol,par,par.ph)                  
@@ -377,12 +372,12 @@ class HousingModelClass(ModelClass): # Rename
                     # sol.dist[t] = np.abs(np.max(sol.c_keep[t+1,:,:,:,:] - sol.c_keep[t,:,:,:,:]))
                     sol.dist[t] = np.abs(np.max(sol.c_adj[t+1,:,:,:] - sol.c_adj[t,:,:,:]))
 
-                # iv. print
+                # iv. Print
                 toc = time.time()
                 if par.do_print or par.do_print_period:
                     print(f' t = {t} solved in {toc-tic:.1f} secs')
 
-        # b. Set last iteration in all periods
+        # b. Use last iteration in all periods
         with jit(self) as model:
 
             par = self.par
@@ -417,7 +412,6 @@ class HousingModelClass(ModelClass): # Rename
         sim = self.sim
 
         # a. Initial and final
-        sim.p0 = np.zeros(par.simN) # remove
         sim.d0 = np.zeros(par.simN)
         sim.a0 = np.zeros(par.simN)
 
@@ -454,14 +448,14 @@ class HousingModelClass(ModelClass): # Rename
         tic = time.time()
 
         # a. Random initial allocation of housing and cash on hand
-        sim.d0[:] = np.random.choice(par.grid_n,size=par.simN) # Initial housing (discrete values)
-        sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN) # initial cash on hand
+        sim.d0[:] = np.random.choice(par.grid_n,size=par.simN)
+        sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN)
 
         # b. Ensure that paths are equal to the ss values
         par.path_R[:] = par.R
         par.path_ph[:] = par.ph
 
-        # b. call
+        # b. Call
         with jit(self) as model:
 
             par = model.par
@@ -469,7 +463,7 @@ class HousingModelClass(ModelClass): # Rename
             sim = model.sim
             sim_path = model.sim_path
 
-            simulate.lifecycle(sim,sol,par,path=False)
+            simulate.monte_carlo(sim,sol,par,path=False)
 
         toc = time.time()
         
@@ -529,12 +523,12 @@ class HousingModelClass(ModelClass): # Rename
                 # ii. Last period
                 if t == (par.path_T+par.T)-1:
 
-                    last_period.solve(t,sol_path,par,ph) # modify this with the stationary solution
+                    last_period.solve(t,sol_path,par,ph)
 
                 else:
                     
                     # o. Compute post decision value
-                    post_decision.compute_wq(t,R,sol_path,par,ph,compute_q=True) # Only need to update r here, then adj and keep should be okay
+                    post_decision.compute_wq(t,R,sol_path,par,ph,compute_q=True)
 
                     # oo. Solve keeper
                     negm.solve_keep(t,sol_path,par)
@@ -542,7 +536,7 @@ class HousingModelClass(ModelClass): # Rename
                     # ooo. Solve adjuster
                     nvfi.solve_adj(t,sol_path,par,ph)
 
-        # b. Replace end points with the 50'th iteration
+        # b. Replace end points with the 50'th iteration to remove terminal period effect
         with jit(self) as model:
 
             par = self.par
@@ -616,4 +610,4 @@ class HousingModelClass(ModelClass): # Rename
             sim_path = self.sim_path
             sim = self.sim
 
-            simulate.lifecycle(sim_path,sol_path,par,path=True)
+            simulate.monte_carlo(sim_path,sol_path,par,path=True)
