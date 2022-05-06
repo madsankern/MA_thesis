@@ -15,7 +15,7 @@ import utility
 #######
 
 @njit
-def obj_adj(d,x,inv_v_keep,grid_n,grid_m,par,ph):
+def obj_adj(d,x,inv_v_keep,grid_m,ph):
     """ evaluate bellman equation """
 
     # a. cash-on-hand
@@ -25,7 +25,7 @@ def obj_adj(d,x,inv_v_keep,grid_n,grid_m,par,ph):
     n = d
     
     # c. value-of-choice
-    return -linear_interp.interp_2d(grid_n,grid_m,inv_v_keep,n,m)  # we are minimizing
+    return -linear_interp.interp_1d(grid_m,inv_v_keep,m)  # we are minimizing
 
 
 @njit(parallel=True)
@@ -73,8 +73,8 @@ def solve_adj(t,sol,par,ph):
 
                 for i_d,house in enumerate(d_allow): # vectorize this loop!
                     
-                    m_i = x - ph*house # cash on hand after choosing the durable
-                    value_of_choice[i_d] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_pb,i_y,i_d,:],m_i) # Find value of choice by interpolation over inv_v_keep
+                    m = x - ph*house # cash on hand after choosing the durable
+                    value_of_choice[i_d] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_pb,i_y,i_d,:],m) # Find value of choice by interpolation over inv_v_keep
                 
                 i_opt = np.argmax(value_of_choice) # convert to integer, might not be necessary 
                 d_opt = d_allow[i_opt]
@@ -82,7 +82,7 @@ def solve_adj(t,sol,par,ph):
 
                 # c. optimal value
                 m = x - ph*d[i_pb,i_y,i_x]
-                c[i_pb,i_y,i_x] = linear_interp.interp_2d(par.grid_n,par.grid_m,c_keep[i_pb,i_y],d[i_pb,i_y,i_x],m)
-                inv_v[i_pb,i_y,i_x] = -obj_adj(d[i_pb,i_y,i_x],x,inv_v_keep[i_pb,i_y],grid_n,grid_m,par,ph) # This has to be corrected as well
+                c[i_pb,i_y,i_x] = linear_interp.interp_1d(par.grid_m,c_keep[i_pb,i_y,i_opt],m)
+                inv_v[i_pb,i_y,i_x] = -obj_adj(d[i_pb,i_y,i_x],x,inv_v_keep[i_pb,i_y,i_opt],grid_m,ph) # This has to be corrected as well
                 if par.do_marg_u: # This is always the case when using negm
                     inv_marg_u[i_pb,i_y,i_x] = 1/utility.marg_func_nopar(c[i_pb,i_y,i_x],d[i_pb,i_y,i_x],d_ubar,alpha,rho)

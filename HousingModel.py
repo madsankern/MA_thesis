@@ -64,19 +64,19 @@ class HousingModelClass(ModelClass): # Rename
         # b. Preferences
         par.beta = 0.965
         par.rho = 2.0
-        par.alpha = 0.9
-        par.d_ubar = 0.2
+        par.alpha = 0.8
+        par.d_ubar = 1.0
 
         # c. Prices and costs
         par.R = 1.03
-        par.ph = 7.0 # House price - rename to p, set to equilibrium
-        par.deltaa = 0.15 # maintenence cost
-        par.phi = 0.1 # downpayment fraction
+        par.ph = 1.0 # House price - rename to p, set to equilibrium
+        par.deltaa = 0.12 # maintenence cost
+        par.phi = 1.0 # downpayment fraction
 
         # d. Path for aggregate states
         par.path_R = np.full(par.path_T + par.T, par.R) # for impulse response
         par.path_ph = np.full(par.path_T + par.T, par.ph) # House price sequence
-        par.R_drop = 0.002 # Drop in interest rates for shock
+        par.R_drop = 0.01 # Drop in interest rates for shock
 
         # e. Markov process income
         par.p_12 = 0.33
@@ -91,9 +91,9 @@ class HousingModelClass(ModelClass): # Rename
         par.pi_cum = np.array(np.cumsum(par.pi))
 
         # f. Purchase price - Ensure eq. price is in the interval
-        par.Npb = 2
-        par.pb_max = 8.0
-        par.pb_min = 7.0
+        par.Npb = 50
+        par.pb_max = 2.0
+        par.pb_min = 0.7
         
         # g. Taxes
         par.tauc = 0.0 # Wealth tax
@@ -103,8 +103,9 @@ class HousingModelClass(ModelClass): # Rename
         par.Ny = 2 # update this
         par.y_min = 0.7
         par.y_max = 1.3
-        par.Nn = 10
-        par.n_max = 0.4
+        par.Nn = 20
+        par.n_min = 0.5
+        par.n_max = 2.0
         par.Nm = 100
         par.m_max = 10.0    
         par.Nx = 100
@@ -157,7 +158,8 @@ class HousingModelClass(ModelClass): # Rename
 
         # a. States
         par.grid_y = nonlinspace(par.y_min,par.y_max,par.Ny,1.1)
-        par.grid_n = nonlinspace(0,par.n_max,par.Nn,1.0)
+        par.grid_n = nonlinspace(par.n_min,par.n_max,par.Nn-1,1.0)
+        par.grid_n = np.insert(par.grid_n,0,0) # Add a zero in the beginning of the array
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
         par.grid_pb = nonlinspace(par.pb_min,par.pb_max,par.Npb,1.0)
