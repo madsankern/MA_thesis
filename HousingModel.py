@@ -64,19 +64,19 @@ class HousingModelClass(ModelClass): # Rename
         # b. Preferences
         par.beta = 0.965
         par.rho = 2.0
-        par.alpha = 0.8
-        par.d_ubar = 1.0
+        par.alpha = 0.7
+        par.d_ubar = 0.2
 
         # c. Prices and costs
         par.R = 1.03
         par.ph = 1.0 # House price - rename to p, set to equilibrium
-        par.deltaa = 0.12 # maintenence cost
+        par.deltaa = 0.05 # maintenence cost
         par.phi = 1.0 # downpayment fraction
 
         # d. Path for aggregate states
         par.path_R = np.full(par.path_T + par.T, par.R) # for impulse response
         par.path_ph = np.full(par.path_T + par.T, par.ph) # House price sequence
-        par.R_drop = 0.01 # Drop in interest rates for shock
+        par.R_drop = 0.005 # Drop in interest rates for shock
 
         # e. Markov process income
         par.p_12 = 0.33
@@ -103,9 +103,9 @@ class HousingModelClass(ModelClass): # Rename
         par.Ny = 2 # update this
         par.y_min = 0.7
         par.y_max = 1.3
-        par.Nn = 20
-        par.n_min = 0.5
-        par.n_max = 2.0
+        par.Nn = 10
+        par.n_min = 2.5
+        par.n_max = 7.0
         par.Nm = 100
         par.m_max = 10.0    
         par.Nx = 100
@@ -120,7 +120,7 @@ class HousingModelClass(ModelClass): # Rename
         par.mu_a0 = 0.6
         par.sigma_a0 = 0.1
         par.simN = 100_000
-        par.sim_seed = 217 #1998
+        par.sim_seed = 217
         par.euler_cutoff = 0.02
 
         # j. Misc
@@ -185,6 +185,13 @@ class HousingModelClass(ModelClass): # Rename
         
         sim.rand0 = np.random.uniform(size=par.simN) # Initial y state
         sim_path.rand0 = sim.rand[-1,:] # use last period for path
+
+        # a. Initial allocation of housing and cash on hand
+        sim.d0 = np.zeros(par.simN)
+        sim.a0 = np.zeros(par.simN)
+
+        sim.d0[:] = np.random.choice(par.grid_n,size=par.simN)
+        sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN)
 
     def checksum(self,simple=False,T=1): # update
         """ calculate and print checksum """
@@ -315,8 +322,10 @@ class HousingModelClass(ModelClass): # Rename
                 # i. Last period
                 if t == par.T-1:
 
+                    # o. Solve last period
                     last_period.solve(t,sol,par,par.ph)
-
+                    
+                    # oo. Check solution
                     if do_assert:
                         assert np.all((sol.c_keep[t] >= 0) & (np.isnan(sol.c_keep[t]) == False))
                         assert np.all((sol.inv_v_keep[t] >= 0) & (np.isnan(sol.inv_v_keep[t]) == False))
@@ -413,9 +422,9 @@ class HousingModelClass(ModelClass): # Rename
         par = self.par
         sim = self.sim
 
-        # a. Initial and final
-        sim.d0 = np.zeros(par.simN)
-        sim.a0 = np.zeros(par.simN)
+        # # a. Initial and final
+        # sim.d0 = np.zeros(par.simN)
+        # sim.a0 = np.zeros(par.simN)
 
         # b. Household utility
         sim.utility = np.zeros(par.simN)
@@ -449,9 +458,9 @@ class HousingModelClass(ModelClass): # Rename
 
         tic = time.time()
 
-        # a. Random initial allocation of housing and cash on hand
-        sim.d0[:] = np.random.choice(par.grid_n,size=par.simN)
-        sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN)
+        # # a. Random initial allocation of housing and cash on hand
+        # sim.d0[:] = np.random.choice(par.grid_n,size=par.simN)
+        # sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN)
 
         # b. Ensure that paths are equal to the ss values
         par.path_R[:] = par.R
