@@ -64,10 +64,10 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
                     for i_a in range(par.Na):
                         
                         # o. If keeping next period
-                        m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],y_plus,par,n,R,ph)
-                        
+                        m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],R,y_plus,n,ph,par)
+
                         # oo. If adjusting next period
-                        x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,pb,par,ph) # should this be pb in t+1?
+                        x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,ph,pb,par) # should this be pb in t+1?
                     
                     # vi. Interpolate
                     linear_interp.interp_1d_vec_mon(prep_keep,par.grid_m,sol.inv_v_keep[t+1,i_pb,ishock,i_n],m_plus,inv_v_keep_plus)
