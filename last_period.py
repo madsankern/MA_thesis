@@ -13,11 +13,11 @@ def obj_last_period(d,x,par,ph):
     """ objective function in last period """
     
     # implied consumption (rest)
-    c = x - ph*d
+    c = x - par.phi*ph*d
 
-    return -utility.func(c,d,par)
+    return utility.func(c,d,par)
 
-@njit(parallel=True)
+#@njit #(parallel=True)
 def solve(t,sol,par,ph):
     """ solve the problem in the last period """
 
@@ -30,9 +30,11 @@ def solve(t,sol,par,ph):
     d_adj = sol.d_adj[t]
     c_adj = sol.c_adj[t]
 
+    value_of_choice = np.zeros(shape=par.Nn) # for choosing optimal housing
+
     # a. keep
-    for i_y in range(par.Ny): #prange
-        for i_pb in range(par.Npb):
+    for i_y in range(par.Ny):
+        for i_pb in range(par.Npb): # no need to loop over this
             for i_n in range(par.Nn):
                 for i_m in range(par.Nm):
                                 
@@ -59,7 +61,7 @@ def solve(t,sol,par,ph):
         for i_pb in range(par.Npb):
             for i_x in range(par.Nx):
                 
-                # i. states
+                # i. States
                 x = par.grid_x[i_x]
 
                 if x == 0: # forced c = d = 0
@@ -68,19 +70,31 @@ def solve(t,sol,par,ph):
                     inv_v_adj[i_pb,i_y,i_x] = 0
                     inv_marg_u_adj[i_pb,i_y,i_x] = 0
                     continue
+                
+                if x <= par.phi*ph*par.n_min: # If one cannot afford the smallest house
+                    d_adj[i_pb,i_y,i_x] = 0
+                    c_adj[i_pb,i_y,i_x] = x
+                    inv_v_adj[i_pb,i_y,i_x] = -1.0/utility.func(c_adj[i_pb,i_y,i_x],0,par)
+                    inv_marg_u_adj[i_pb,i_y,i_x] = 1.0/utility.marg_func(c_adj[i_pb,i_y,i_x],0,par)
+                    continue
 
-                # ii. optimal choices
-                d_allow = par.grid_n[par.grid_n <= x/ph]
-                value_of_choice = np.empty(len(d_allow))
-                
-                for i_d,d in enumerate(d_allow): # vectorize this loop! , and rename d
-                    c = x - ph*d
-                    value_of_choice[i_d] = utility.func(c,d,par)
-                
-                d_adj[i_pb,i_y,i_x] = d_allow[np.argmax(value_of_choice)] # written as a max now!
-                c_adj[i_pb,i_y,i_x] = x - ph*d_adj[i_pb,i_y,i_x]
+                # ii. Optimal choices
+                for i_n in range(par.Nn):
+                    d = par.grid_n[i_n]
+                    c = x - par.phi*ph*d
+                    
+                    if c <= 0:
+                        value_of_choice[i_n] = -np.inf
+                    else:
+                        value_of_choice[i_n] = -1.0/utility.func(c,d,par)
+
+                i_opt = np.argmax(value_of_choice)
+                # print(value_of_choice)
+                # print(i_opt)
+                d_adj[i_pb,i_y,i_x] = par.grid_n[i_opt] # Optimal choice of housing
+                c_adj[i_pb,i_y,i_x] = x - par.phi*ph*d_adj[i_pb,i_y,i_x] # use residual income on the non-durable
 
                 # iii. optimal value
-                v_adj = -obj_last_period(d_adj[i_pb,i_y,i_x],x,par,ph)
+                v_adj = utility.func(c_adj[i_pb,i_y,i_x],d_adj[i_pb,i_y,i_x],par) #obj_last_period(d_adj[i_pb,i_y,i_x],x,par,ph)
                 inv_v_adj[i_pb,i_y,i_x] = -1.0/v_adj
                 inv_marg_u_adj[i_pb,i_y,i_x] = 1.0/utility.marg_func(c_adj[i_pb,i_y,i_x],d_adj[i_pb,i_y,i_x],par)
