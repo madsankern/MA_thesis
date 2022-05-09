@@ -76,13 +76,12 @@ def solve_adj(t,sol,par,ph):
                     res = x - par.phi*ph*d_temp # residual cash on hand
                     
                     if res <= 0:
-                        value_of_choice[i_n] = -1
+                        value_of_choice[i_n] = -np.inf
                     else:
                         value_of_choice[i_n] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_pb,i_y,i_n],res)   #obj_adj(d_temp,x,inv_v_keep[i_pb,i_y,i_n,:],grid_m,ph,par)
 
                 i_n_opt = int(np.argmax(value_of_choice))
                 d[i_pb,i_y,i_x] = par.grid_n[i_n_opt] # Optimal choice of housing
-                c[i_pb,i_y,i_x] = x - ph*d[i_pb,i_y,i_x] # use residual income on the non-durable
 
                 # c. optimal value
                 m = x - par.phi*ph*d[i_pb,i_y,i_x]
