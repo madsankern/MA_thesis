@@ -106,9 +106,9 @@ class HousingModelClass(ModelClass):
         par.n_min = 2.5
         par.n_max = 7.0
         par.Nm = 100
-        par.m_max = 10.0    
+        par.m_max = 10.0
         par.Nx = 100
-        par.x_max = par.m_max + par.ph*par.n_max
+        par.x_max = par.m_max + 2*par.ph*par.n_max # Find an appropriate value for the upper limit
         par.Na = 100
         par.a_max = par.m_max+1.0
 
