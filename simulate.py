@@ -33,17 +33,17 @@ def monte_carlo(sim,sol,par,path=False):
     rand = sim.rand
     rand0 = sim.rand0
 
-    # Determine simulation length
+    # a. Determine simulation length
     if path:
         horizon = par.path_T
     else:
         horizon = par.sim_T
 
-    # Loop over households and time
+    # b. Loop over households and time
     for i in prange(par.simN):
         for t in range(horizon):
 
-            # Determine aggregate states (R and ph)
+            # i. Determine aggregate states (R and ph)
             if path:
                 R = par.path_R[t]
                 ph = par.path_ph[t]
@@ -51,81 +51,85 @@ def monte_carlo(sim,sol,par,path=False):
                 R = par.R
                 ph = par.ph
             
-            # a. beginning of period states
+            # ii. beginning of period states
             if t == 0:
 
-                # i. Purchase price
+                # o. Purchase price
                 pb_lag = par.ph
 
-                # ii. Income
+                # oo. Income
                 state_lag = markov.choice(rand0[i], par.pi_cum) # Initialize from stationary distribution
-                y0 = grid_y[state_lag] # Income in period t-1
+                # y0 = grid_y[state_lag] # Income in period t-1
 
-                state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:])
-                y[t,i] = grid_y[state[t,i]]
+                state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:]) # Finds the INDEX of current y
+                y[t,i] = grid_y[state[t,i]] # Income in period t
                 
-                # iii. Housing
+                # ooo. Housing
                 n[t,i] = trans.n_plus_func(sim.d0[i],par)
                 
-                # iv. Cash on hand
-                m[t,i] = trans.m_plus_func(sim.a0[i],y0,par,n[t,i],par.R,par.ph) # Set initial income equal to 'state_lag', use ss prices
+                # oooo. Cash on hand
+                m[t,i] = trans.m_plus_func(sim.a0[i],par.R,y[t,i],n[t,i],par.ph,par) # Uses ss prices
 
             else:
 
-                # i. Income
+                # o. Income
                 state_lag = state[t-1,i] # last period value
                 state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:])
                 y[t,i] = grid_y[state[t,i]]
                 
-                # ii. Housing
+                # oo. Housing
                 n[t,i] = trans.n_plus_func(d[t-1,i],par)
                 
-                # iii. Cash on hand
-                m[t,i] = trans.m_plus_func(a[t-1,i],y[t-1,i],par,n[t,i],par.path_R[t-1],par.path_ph[t-1])
+                # ooo. Cash on hand
+                # m[t,i] = trans.m_plus_func(a[t-1,i],y[t,i],par,n[t,i],par.path_R[t-1],par.path_ph[t-1])
+                m[t,i] = trans.m_plus_func(a[t-1,i],par.path_R[t-1], y[t,i], n[t,i], par.path_ph[t-1],par)
 
-                # Lagged purchase price
+                # oooo. Lagged purchase price
                 pb_lag = pb[t-1,i]
             
             # b. optimal choices and post decision states
-            optimal_choice(t,state[t,i],n[t,i],m[t,i],discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],pb[t,i:],sol,par,ph,path,pb_lag)
+            # optimal_choice(t,state[t,i],n[t,i],m[t,i],discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],pb[t,i:],sol,par,ph,path,pb_lag)
+            optimal_choice(t,state[t,i],n[t,i],m[t,i],pb_lag,ph,discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],pb[t,i:],sol,par,path)
 
 @njit
-def optimal_choice(t,y,n,m,discrete,d,c,a,pb,sol,par,ph,path,pb_lag): # Calculate the optimal choice
+def optimal_choice(t,state,n,m,pb_lag,ph,discrete,d,c,a,pb,sol,par,path=False):
+# order of input: beggining of period states, end period states,containers,option
 
-    # No need to iterate over t when simulating in ss
+    # a. Ensure t is constaint if simulating in steady state
     if path == False:
         t = 0
 
-    # Available cash on hand
-    x = trans.x_plus_func(m,n,pb_lag,par,ph)
+    # b. Available cash-on-hand if adjusting
+    x = trans.x_plus_func(m,n,ph,pb_lag,par)
     
-    # House purchase price if adjusting
+    # c. House purchase price if either adjusting or keeping
     pb_adj = ph
+    pb_keep = pb_lag
 
-    # a. Find max of keeper and adjuster (discrete choice)
-    inv_v_keep = linear_interp.interp_3d(par.grid_pb,par.grid_n,par.grid_m,sol.inv_v_keep[t,:,y],pb_lag,n,m) # okay to use index 0 for pb here?
-    inv_v_adj = linear_interp.interp_2d(par.grid_pb,par.grid_x,sol.inv_v_adj[t,:,y],pb_adj,x) # added pb
+    # d. Find max of keeper and adjuster (discrete choice)
+    inv_v_keep = linear_interp.interp_3d(par.grid_pb,par.grid_n,par.grid_m,sol.inv_v_keep[t,:,state],pb_keep,n,m)
+    inv_v_adj = linear_interp.interp_2d(par.grid_pb,par.grid_x,sol.inv_v_adj[t,:,state],pb_adj,x)
     adjust = inv_v_adj > inv_v_keep
-    # print(inv_v_adj - inv_v_keep)
     
-    # b. Find implied durable and non-durable consumption
+    # b. Find implied durable and non-durable consumption from discrete choice
     if adjust:
 
         discrete[0] = 1 # This is just to compute the share of adjusters
         pb[0] = pb_adj # Update purchase price
         
         d[0] = linear_interp.interp_2d(
-            par.grid_pb,par.grid_x,sol.d_adj[t,:,y],
-            pb[0],x)
+            par.grid_pb,par.grid_x,sol.d_adj[t,:,state],
+            pb_adj,x)
 
         c[0] = linear_interp.interp_2d(
-            par.grid_pb,par.grid_x,sol.c_adj[t,:,y],
-            pb[0],x)
+            par.grid_pb,par.grid_x,sol.c_adj[t,:,state],
+            pb_adj,x)
 
-        tot = ph*d[0]+c[0]
+        tot = par.phi*ph*d[0]+c[0]
         if tot > x: # Ensure that total consumption only add up to x
-            d[0] *= x/tot
-            c[0] *= x/tot
+            # d[0] *= x/tot
+            # c[0] *= x/tot
+            c[0] -= tot-x
             a[0] = 0.0
         else:
             a[0] = x - tot
@@ -133,13 +137,13 @@ def optimal_choice(t,y,n,m,discrete,d,c,a,pb,sol,par,ph,path,pb_lag): # Calculat
     else:
             
         discrete[0] = 0
-        pb[0] = pb_lag # Use lagged pb if not adjust
+        pb[0] = pb_keep
 
         d[0] = n # set housing equal to last period if no adjust
 
         c[0] = linear_interp.interp_3d(
-            par.grid_pb,par.grid_n,par.grid_m,sol.c_keep[t,:,y],
-            pb_lag,n,m)
+            par.grid_pb,par.grid_n,par.grid_m,sol.c_keep[t,:,state],
+            pb_keep,n,m)
 
         if c[0] > m: 
             c[0] = m
