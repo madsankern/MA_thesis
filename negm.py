@@ -30,7 +30,7 @@ def solve_keep(t,sol,par):
 
             # loop over pb here
 
-            for i_n in prange(par.Nn):
+            for i_n in range(par.Nn):
                 
                 # use euler equation
                 n = par.grid_n[i_n]
@@ -45,5 +45,4 @@ def solve_keep(t,sol,par):
                 # negative inverse
                 for i_m in range(par.Nm):
                     inv_v[i_pb,i_y,i_n,i_m] = -1/v_ast_vec[i_m]
-                    if par.do_marg_u:
-                        inv_marg_u[i_pb,i_y,i_n,i_m] = 1/utility.marg_func(c[i_pb,i_y,i_n,i_m],n,par)
+                    inv_marg_u[i_pb,i_y,i_n,i_m] = 1/utility.marg_func(c[i_pb,i_y,i_n,i_m],n,par)
