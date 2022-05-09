@@ -32,7 +32,7 @@ def solve(t,sol,par,ph):
 
     value_of_choice = np.zeros(shape=par.Nn) # for choosing optimal housing
 
-    # a. keep
+    # a. Keep
     for i_y in range(par.Ny):
         for i_pb in range(par.Npb): # no need to loop over this
             for i_n in range(par.Nn):
@@ -56,7 +56,7 @@ def solve(t,sol,par,ph):
                     inv_v_keep[i_pb,i_y,i_n,i_m] = -1.0/v_keep
                     inv_marg_u_keep[i_pb,i_y,i_n,i_m] = 1.0/utility.marg_func(c_keep[i_pb,i_y,i_n,i_m],n,par)
 
-    # b. adj
+    # b. Adj
     for i_y in range(par.Ny): #prange
         for i_pb in range(par.Npb):
             for i_x in range(par.Nx):
