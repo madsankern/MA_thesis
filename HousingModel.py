@@ -25,10 +25,9 @@ import negm
 import simulate
 
 import path
-import simulate_path
+# import simulate_path
 
-
-class HousingModelClass(ModelClass): # Rename
+class HousingModelClass(ModelClass):
     
     #########
     # Setup #
@@ -48,7 +47,7 @@ class HousingModelClass(ModelClass): # Rename
 
         # d. list not-floats for safe type inference - UPDATE
         self.not_floats = ['solmethod','T','t','simN','sim_seed','cppthreads',
-                           'Npsi','Nxi','Nm','Np','Nn','Nx','Na','Nshocks',
+                           'Npsi','Nxi','Nm','Np','Nn','Nx','Na','Npb','Nshocks',
                            'do_print','do_print_period','do_marg_u','do_simple_wq']
 
     def setup(self):
@@ -57,7 +56,7 @@ class HousingModelClass(ModelClass): # Rename
         par = self.par
 
         # a. Horizon
-        par.T = 80 # NOTE find out what this should be, Number of iterations to find stationary solution
+        par.T = 50 #80 # NOTE find out what this should be, Number of iterations to find stationary solution
         par.path_T = 200 # Length of model solve along the path
         par.sim_T = 200 # Length of stationary simulation to ensure convergence
         
@@ -91,7 +90,7 @@ class HousingModelClass(ModelClass): # Rename
         par.pi_cum = np.array(np.cumsum(par.pi))
 
         # f. Purchase price - Ensure eq. price is in the interval
-        par.Npb = 50
+        par.Npb = 2
         par.pb_max = 2.0
         par.pb_min = 0.7
         
@@ -388,29 +387,29 @@ class HousingModelClass(ModelClass): # Rename
                 if par.do_print or par.do_print_period:
                     print(f' t = {t} solved in {toc-tic:.1f} secs')
 
-        # b. Use last iteration in all periods
-        with jit(self) as model:
+        # # b. Use last iteration in all periods
+        # with jit(self) as model:
 
-            par = self.par
-            sol_path = self.sol_path
-            sol = self.sol
+        #     par = self.par
+        #     sol_path = self.sol_path
+        #     sol = self.sol
 
-            # i. Keeper
-            sol.c_keep[:] = sol.c_keep[0]
-            sol.inv_v_keep[:] = sol.inv_v_keep[0]
-            sol.inv_marg_u_keep[:] = sol.inv_marg_u_keep[0]
+        #     # i. Keeper
+        #     sol.c_keep[:] = sol.c_keep[0]
+        #     sol.inv_v_keep[:] = sol.inv_v_keep[0]
+        #     sol.inv_marg_u_keep[:] = sol.inv_marg_u_keep[0]
 
-            # ii. Adjuster
-            sol.d_adj[:] = sol.d_adj[0]
-            sol.c_adj[:] = sol.c_adj[0]
-            sol.inv_v_adj[:] = sol.inv_v_adj[0]
-            sol.inv_marg_u_adj[:] = sol.inv_marg_u_adj[0]
+        #     # ii. Adjuster
+        #     sol.d_adj[:] = sol.d_adj[0]
+        #     sol.c_adj[:] = sol.c_adj[0]
+        #     sol.inv_v_adj[:] = sol.inv_v_adj[0]
+        #     sol.inv_marg_u_adj[:] = sol.inv_marg_u_adj[0]
                 
-            # iii. Post decision
-            sol.inv_w[:] = sol.inv_w[0]
-            sol.q[:] = sol.q[0]
-            sol.q_c[:] = sol.q_c[0]
-            sol.q_m[:] = sol.q[0]        
+        #     # iii. Post decision
+        #     sol.inv_w[:] = sol.inv_w[0]
+        #     sol.q[:] = sol.q[0]
+        #     sol.q_c[:] = sol.q_c[0]
+        #     sol.q_m[:] = sol.q[0]        
 
     ############
     # simulate #
