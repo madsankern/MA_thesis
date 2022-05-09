@@ -15,20 +15,17 @@ import utility
 #######
 
 @njit
-def obj_adj(d,x,inv_v_keep,grid_m,ph):
+def obj_adj(d,x,inv_v_keep,grid_m,ph,par):
     """ evaluate bellman equation """
 
     # a. cash-on-hand
-    m = x - ph*d
-
-    # b. durables
-    n = d
+    m = x - par.phi*ph*d
     
     # c. value-of-choice
-    return -linear_interp.interp_1d(grid_m,inv_v_keep,m)  # we are minimizing
+    return linear_interp.interp_1d(grid_m,inv_v_keep,m)  # we are minimizing
 
 
-@njit(parallel=True)
+# @njit(parallel=True)
 def solve_adj(t,sol,par,ph):
     """solve bellman equation for adjusters using nvfi"""
 
@@ -47,42 +44,49 @@ def solve_adj(t,sol,par,ph):
     alpha = par.alpha
     rho = par.rho
 
-    # print(inv_v_keep)
-    # loop over pb here
-    for i_pb in prange(par.Npb):
+    # Container for value of housing choice
+    value_of_choice = np.zeros(shape=par.Nn)
 
-        # loop over outer states
-        for i_y in prange(par.Ny): #prange
+    for i_pb in range(par.Npb):
+        for i_y in range(par.Ny):
             
             # loop over x state
-            for i_x in prange(par.Nx):
+            for i_x in range(par.Nx):
                 
-                # a. cash-on-hand - this is fine
+                # a. Cash-on-hand
                 x = par.grid_x[i_x]
-                if i_x == 0:
+                
+                if i_x == 0: # Forces c = d = 0
                     d[i_pb,i_y,i_x] = 0
                     c[i_pb,i_y,i_x] = 0
                     inv_v[i_pb,i_y,i_x] = 0
-                    if par.do_marg_u: # remove 'if'
-                        inv_marg_u[i_pb,i_y,i_x] = 0        
+                    inv_marg_u[i_pb,i_y,i_x] = 0        
+                    continue
+
+                if x <= par.phi*ph*par.n_min: # If one cannot afford the smallest house
+                    d[i_pb,i_y,i_x] = 0
+                    c[i_pb,i_y,i_x] = linear_interp.interp_1d(par.grid_m,c_keep[i_pb,i_y,0],x)
+                    inv_v[i_pb,i_y,i_x] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_pb,i_y,0],x)
+                    inv_marg_u[i_pb,i_y,i_x] = 1.0/utility.marg_func_nopar(c[i_pb,i_y,i_x],0,d_ubar,alpha,rho)
                     continue
 
                 # b. optimal choice
-                d_allow = par.grid_n[par.grid_n <= x / ph] # House sizes that can be afforded
-                value_of_choice = np.empty(len(d_allow)) # Initialize before loop instead!
-
-                for i_d,house in enumerate(d_allow): # vectorize this loop!
+                for i_n in range(par.Nn):
+                    d_temp = par.grid_n[i_n]
+                    res = x - par.phi*ph*d_temp # residual cash on hand
                     
-                    m = x - ph*house # cash on hand after choosing the durable
-                    value_of_choice[i_d] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_pb,i_y,i_d,:],m) # Find value of choice by interpolation over inv_v_keep
-                
-                i_opt = np.argmax(value_of_choice) # convert to integer, might not be necessary 
-                d_opt = d_allow[i_opt]
-                d[i_pb,i_y,i_x] = d_opt # These can be combined
+                    if res <= 0:
+                        value_of_choice[i_n] = -1
+                    else:
+                        value_of_choice[i_n] = linear_interp.interp_1d(par.grid_m,inv_v_keep[i_pb,i_y,i_n],res)   #obj_adj(d_temp,x,inv_v_keep[i_pb,i_y,i_n,:],grid_m,ph,par)
+
+                i_n_opt = int(np.argmax(value_of_choice))
+                d[i_pb,i_y,i_x] = par.grid_n[i_n_opt] # Optimal choice of housing
+                c[i_pb,i_y,i_x] = x - ph*d[i_pb,i_y,i_x] # use residual income on the non-durable
 
                 # c. optimal value
-                m = x - ph*d[i_pb,i_y,i_x]
-                c[i_pb,i_y,i_x] = linear_interp.interp_1d(par.grid_m,c_keep[i_pb,i_y,i_opt],m)
-                inv_v[i_pb,i_y,i_x] = -obj_adj(d[i_pb,i_y,i_x],x,inv_v_keep[i_pb,i_y,i_opt],grid_m,ph) # This has to be corrected as well
-                if par.do_marg_u: # This is always the case when using negm
-                    inv_marg_u[i_pb,i_y,i_x] = 1/utility.marg_func_nopar(c[i_pb,i_y,i_x],d[i_pb,i_y,i_x],d_ubar,alpha,rho)
+                m = x - par.phi*ph*d[i_pb,i_y,i_x]
+                c[i_pb,i_y,i_x] = linear_interp.interp_1d(par.grid_m,c_keep[i_pb,i_y,i_n_opt],m)
+                
+                inv_v[i_pb,i_y,i_x] = value_of_choice[i_n_opt] #-obj_adj(d[i_pb,i_y,i_x],x,inv_v_keep[i_pb,i_y,i_n_opt],grid_m,ph,par) # This has to be corrected as well
+                inv_marg_u[i_pb,i_y,i_x] = 1.0/utility.marg_func_nopar(c[i_pb,i_y,i_x],d[i_pb,i_y,i_x],d_ubar,alpha,rho)
