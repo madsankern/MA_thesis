@@ -3,7 +3,7 @@ from numba import njit
 
 # from consav import markov
 
-# a. Housing state
+# a. Housing state from last period choice
 @njit(fastmath=True)
 def n_plus_func(d,par):
     n_plus = d
