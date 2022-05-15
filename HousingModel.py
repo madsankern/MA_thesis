@@ -56,7 +56,7 @@ class HousingModelClass(ModelClass):
         par = self.par
 
         # a. Horizon
-        par.T = 50 #80 # NOTE find out what this should be, Number of iterations to find stationary solution
+        par.T = 200 #80 # NOTE find out what this should be, Number of iterations to find stationary solution
         par.path_T = 200 # Length of model solve along the path
         par.sim_T = 200 # Length of stationary simulation to ensure convergence
         
@@ -64,12 +64,12 @@ class HousingModelClass(ModelClass):
         par.beta = 0.965
         par.rho = 2.0
         par.alpha = 0.7
-        par.d_ubar = 0.2
+        par.d_ubar = 1.0
 
         # c. Prices and costs
         par.R = 1.03
         par.ph = 1.0 # House price - rename to p, set to equilibrium
-        par.deltaa = 0.05 # maintenence cost
+        par.deltaa = 0.1 # maintenence cost
         par.phi = 1.0 # downpayment fraction
 
         # d. Path for aggregate states
@@ -102,15 +102,15 @@ class HousingModelClass(ModelClass):
         par.Ny = 2 # update this
         par.y_min = 0.7
         par.y_max = 1.3
-        par.Nn = 10
-        par.n_min = 2.5
-        par.n_max = 7.0
+        par.Nn = 25
+        par.n_min = 0 #2.5
+        par.n_max = 5.0
         par.Nm = 100
         par.m_max = 10.0
         par.Nx = 100
         par.x_max = par.m_max + 2*par.ph*par.n_max # Find an appropriate value for the upper limit
         par.Na = 100
-        par.a_max = par.m_max+1.0
+        par.a_max = par.m_max-2.0
 
         # i. Simulation parameters - these must be based on steady state
         par.sigma_p0 = 0.2
@@ -157,8 +157,8 @@ class HousingModelClass(ModelClass):
 
         # a. States
         par.grid_y = nonlinspace(par.y_min,par.y_max,par.Ny,1.1)
-        par.grid_n = nonlinspace(par.n_min,par.n_max,par.Nn-1,1.0)
-        par.grid_n = np.insert(par.grid_n,0,0) # Add a zero in the beginning of the array
+        par.grid_n = nonlinspace(par.n_min,par.n_max,par.Nn,1.0) # set to minus 1 again
+        # par.grid_n = np.insert(par.grid_n,0,0) # Add a zero in the beginning of the array
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
         par.grid_pb = nonlinspace(par.pb_min,par.pb_max,par.Npb,1.0)
@@ -189,7 +189,7 @@ class HousingModelClass(ModelClass):
         sim.d0 = np.zeros(par.simN)
         sim.a0 = np.zeros(par.simN)
 
-        sim.d0[:] = np.random.choice(par.grid_n,size=par.simN)
+        #sim.d0[:] = np.random.choice(par.grid_n,size=par.simN)
         sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN)
 
     def checksum(self,simple=False,T=1): # update
@@ -388,28 +388,28 @@ class HousingModelClass(ModelClass):
                     print(f' t = {t} solved in {toc-tic:.1f} secs')
 
         # # b. Use last iteration in all periods
-        # with jit(self) as model:
+        with jit(self) as model:
 
-        #     par = self.par
-        #     sol_path = self.sol_path
-        #     sol = self.sol
+            par = self.par
+            sol_path = self.sol_path
+            sol = self.sol
 
-        #     # i. Keeper
-        #     sol.c_keep[:] = sol.c_keep[0]
-        #     sol.inv_v_keep[:] = sol.inv_v_keep[0]
-        #     sol.inv_marg_u_keep[:] = sol.inv_marg_u_keep[0]
+            # i. Keeper
+            sol.c_keep[:] = sol.c_keep[0]
+            sol.inv_v_keep[:] = sol.inv_v_keep[0]
+            sol.inv_marg_u_keep[:] = sol.inv_marg_u_keep[0]
 
-        #     # ii. Adjuster
-        #     sol.d_adj[:] = sol.d_adj[0]
-        #     sol.c_adj[:] = sol.c_adj[0]
-        #     sol.inv_v_adj[:] = sol.inv_v_adj[0]
-        #     sol.inv_marg_u_adj[:] = sol.inv_marg_u_adj[0]
+            # ii. Adjuster
+            sol.d_adj[:] = sol.d_adj[0]
+            sol.c_adj[:] = sol.c_adj[0]
+            sol.inv_v_adj[:] = sol.inv_v_adj[0]
+            sol.inv_marg_u_adj[:] = sol.inv_marg_u_adj[0]
                 
-        #     # iii. Post decision
-        #     sol.inv_w[:] = sol.inv_w[0]
-        #     sol.q[:] = sol.q[0]
-        #     sol.q_c[:] = sol.q_c[0]
-        #     sol.q_m[:] = sol.q[0]        
+            # iii. Post decision
+            sol.inv_w[:] = sol.inv_w[0]
+            sol.q[:] = sol.q[0]
+            sol.q_c[:] = sol.q_c[0]
+            sol.q_m[:] = sol.q[0]        
 
     ############
     # simulate #
