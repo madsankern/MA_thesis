@@ -102,9 +102,9 @@ class HousingModelClass(ModelClass):
         par.Ny = 2 # update this
         par.y_min = 0.7
         par.y_max = 1.3
-        par.Nn = 25
-        par.n_min = 0 #2.5
-        par.n_max = 5.0
+        par.Nn = 10
+        par.n_min = 1.0 #2.5
+        par.n_max = 3.5
         par.Nm = 100
         par.m_max = 10.0
         par.Nx = 100
@@ -158,7 +158,7 @@ class HousingModelClass(ModelClass):
         # a. States
         par.grid_y = nonlinspace(par.y_min,par.y_max,par.Ny,1.1)
         par.grid_n = nonlinspace(par.n_min,par.n_max,par.Nn,1.0) # set to minus 1 again
-        # par.grid_n = np.insert(par.grid_n,0,0) # Add a zero in the beginning of the array
+        par.grid_n = np.insert(par.grid_n,0,0) # Add a zero in the beginning of the array
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
         par.grid_pb = nonlinspace(par.pb_min,par.pb_max,par.Npb,1.0)
