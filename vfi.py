@@ -24,7 +24,6 @@ def obj_adj(d,x,inv_v_keep,grid_m,ph,par):
     # c. value-of-choice
     return linear_interp.interp_1d(grid_m,inv_v_keep,m)  # we are minimizing
 
-
 # @njit(parallel=True)
 def solve_adj(t,sol,par,ph):
     """solve bellman equation for adjusters using nvfi"""
