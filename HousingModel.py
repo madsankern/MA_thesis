@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-"""DurableConsumptionModel
+"""HousingModel
 Solve a consumption-saving model with a non-durable numeraire and durable housing
 """
 
@@ -20,12 +19,10 @@ import utility
 import trans
 import last_period
 import post_decision
-import nvfi
+import vfi
 import negm
 import simulate
-
 import path
-# import simulate_path
 
 class HousingModelClass(ModelClass):
     
@@ -56,7 +53,7 @@ class HousingModelClass(ModelClass):
         par = self.par
 
         # a. Horizon
-        par.T = 200 #80 # NOTE find out what this should be, Number of iterations to find stationary solution
+        par.T = 20 #80 # NOTE find out what this should be, Number of iterations to find stationary solution
         par.path_T = 200 # Length of model solve along the path
         par.sim_T = 200 # Length of stationary simulation to ensure convergence
         
@@ -219,7 +216,7 @@ class HousingModelClass(ModelClass):
             print('')
 
     #########
-    # solve #
+    # Solve #
     #########
 
     def precompile_numba(self):
@@ -277,7 +274,7 @@ class HousingModelClass(ModelClass):
         sol = self.sol
 
         # a. Keeper
-        keep_shape = (par.T,par.Npb,par.Ny,par.Nn,par.Nm) # Remove pb, as this is not needed to loop over
+        keep_shape = (par.T,par.Npb,par.Ny,par.Nn,par.Nm)
         sol.c_keep = np.zeros(keep_shape)
         sol.inv_v_keep = np.zeros(keep_shape)
         sol.inv_marg_u_keep = np.zeros(keep_shape)
@@ -300,31 +297,28 @@ class HousingModelClass(ModelClass):
         sol.dist = np.nan*np.zeros(par.T)
 
     def solve(self,do_assert=True):
-        """ solve the model
+        """ Solve the model
         
         Args:
-            do_assert (bool,optional): make assertions on the solution
-        
+            do_assert (bool,optional): Check if policy and inverse value functions are non-negative and not NaN.
         """
-
-        tic = time.time()
-
         for t in reversed(range(self.par.T)):
             
             self.par.t = t
 
             with jit(self) as model:
 
+                # i. Extract attributes (?)
                 par = model.par
                 sol = model.sol
                 
-                # i. Last period
+                # ii. Last period
                 if t == par.T-1:
 
                     # o. Solve last period
                     last_period.solve(t,sol,par,par.ph)
                     
-                    # oo. Check solution
+                    # oo. Check solution for errors
                     if do_assert:
                         assert np.all((sol.c_keep[t] >= 0) & (np.isnan(sol.c_keep[t]) == False))
                         assert np.all((sol.inv_v_keep[t] >= 0) & (np.isnan(sol.inv_v_keep[t]) == False))
@@ -332,62 +326,36 @@ class HousingModelClass(ModelClass):
                         assert np.all((sol.c_adj[t] >= 0) & (np.isnan(sol.c_adj[t]) == False))
                         assert np.all((sol.inv_v_adj[t] >= 0) & (np.isnan(sol.inv_v_adj[t]) == False))
 
-                # ii. All other periods
+                # iii. All other periods
                 else:
                     
                     # o. Compute post-decision functions
-                    tic_w = time.time()
-                    
                     post_decision.compute_wq(t,par.R,sol,par,par.ph,compute_q=True)
-
-                    toc_w = time.time()
-                    par.time_w[t] = toc_w-tic_w
-                    if par.do_print:
-                        print(f'  w computed in {toc_w-tic_w:.1f} secs')
 
                     assert np.all((sol.inv_w[t] > 0) & (np.isnan(sol.inv_w[t]) == False)), t 
                     assert np.all((sol.q[t] > 0) & (np.isnan(sol.q[t]) == False)), t
 
                     # oo. Solve keeper problem
-                    tic_keep = time.time()
-
                     negm.solve_keep(t,sol,par)
-
-                    toc_keep = time.time()
-                    par.time_keep[t] = toc_keep-tic_keep
-                    if par.do_print:
-                        print(f'  solved keeper problem in {toc_keep-tic_keep:.1f} secs')
 
                     if do_assert:
                         assert np.all((sol.c_keep[t] >= 0) & (np.isnan(sol.c_keep[t]) == False)), t
                         assert np.all((sol.inv_v_keep[t] >= 0) & (np.isnan(sol.inv_v_keep[t]) == False)), t
 
                     # ooo. Solve adjuster problem
-                    tic_adj = time.time()
-                    
-                    nvfi.solve_adj(t,sol,par,par.ph)                  
-
-                    toc_adj = time.time()
-                    par.time_adj[t] = toc_adj-tic_adj
-                    if par.do_print:
-                        print(f'  solved adjuster problem in {toc_adj-tic_adj:.1f} secs')
+                    vfi.solve_adj(t,sol,par,par.ph)                  
 
                     if do_assert:
                         assert np.all((sol.d_adj[t] >= 0) & (np.isnan(sol.d_adj[t]) == False)), t
                         assert np.all((sol.c_adj[t] >= 0) & (np.isnan(sol.c_adj[t]) == False)), t
                         assert np.all((sol.inv_v_adj[t] >= 0) & (np.isnan(sol.inv_v_adj[t]) == False)), t
 
-                # iii. Compute distance to previous iteration
+                # iv. Compute distance to previous iteration
                 if t < par.T-1:
                     # sol.dist[t] = np.abs(np.max(sol.c_keep[t+1,:,:,:,:] - sol.c_keep[t,:,:,:,:]))
                     sol.dist[t] = np.abs(np.max(sol.c_adj[t+1,:,:,:] - sol.c_adj[t,:,:,:]))
 
-                # iv. Print
-                toc = time.time()
-                if par.do_print or par.do_print_period:
-                    print(f' t = {t} solved in {toc-tic:.1f} secs')
-
-        # # b. Use last iteration in all periods
+        # b. Insert last iteration in all periods (infinite horizon)
         with jit(self) as model:
 
             par = self.par
@@ -412,7 +380,7 @@ class HousingModelClass(ModelClass):
             sol.q_m[:] = sol.q[0]        
 
     ############
-    # simulate #
+    # Simulate #
     ############
 
     def simulate_prep(self):
@@ -421,14 +389,10 @@ class HousingModelClass(ModelClass):
         par = self.par
         sim = self.sim
 
-        # # a. Initial and final
-        # sim.d0 = np.zeros(par.simN)
-        # sim.a0 = np.zeros(par.simN)
-
-        # b. Household utility
+        # a. Household utility
         sim.utility = np.zeros(par.simN)
 
-        # c. States and choices
+        # b. States and choices
         sim_shape = (par.sim_T,par.simN)
         sim.y = np.zeros(sim_shape)
         sim.m = np.zeros(sim_shape)
@@ -439,13 +403,13 @@ class HousingModelClass(ModelClass):
         sim.a = np.zeros(sim_shape)
         sim.pb = np.zeros(sim_shape)
         
-        # d. Euler errors
+        # c. Euler errors
         euler_shape = (par.sim_T-1,par.simN)
         sim.euler_error = np.zeros(euler_shape)
         sim.euler_error_c = np.zeros(euler_shape)
         sim.euler_error_rel = np.zeros(euler_shape)
 
-        # e. Income states
+        # d. Income states
         sim.state = np.zeros((par.sim_T,par.simN),dtype=np.int_)
 
     def simulate(self,do_utility=False,do_euler_error=False):
@@ -455,13 +419,7 @@ class HousingModelClass(ModelClass):
         sol = self.sol
         sim = self.sim
 
-        tic = time.time()
-
-        # # a. Random initial allocation of housing and cash on hand
-        # sim.d0[:] = np.random.choice(par.grid_n,size=par.simN)
-        # sim.a0[:] = par.mu_a0*np.random.lognormal(mean=1.3,sigma=par.sigma_a0,size=par.simN)
-
-        # b. Ensure that paths are equal to the ss values
+        # a. Ensure that paths for R and p are constantly equal to their ss value
         par.path_R[:] = par.R
         par.path_ph[:] = par.ph
 
@@ -471,15 +429,9 @@ class HousingModelClass(ModelClass):
             par = model.par
             sol = model.sol
             sim = model.sim
-            sim_path = model.sim_path
+            sim_path = model.sim_path # Can be removed?
 
             simulate.monte_carlo(sim,sol,par,path=False)
-
-        toc = time.time()
-        
-        if par.do_print:
-            print(f'model simulated in {toc-tic:.1f} secs')
-
 
     #########################
     # Solve Transition Path #
@@ -544,7 +496,7 @@ class HousingModelClass(ModelClass):
                     negm.solve_keep(t,sol_path,par)
 
                     # ooo. Solve adjuster
-                    nvfi.solve_adj(t,sol_path,par,ph)
+                    vfi.solve_adj(t,sol_path,par,ph)
 
         # b. Replace end points with the 50'th iteration to remove terminal period effect
         with jit(self) as model:
