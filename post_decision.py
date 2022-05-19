@@ -35,19 +35,19 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
             inv_marg_u_adj_plus = np.zeros(par.Na)
             
             # loop over other outer post-decision states
-            for i_n in range(par.Nn): # think of this as the post decision housing
+            for i_n in prange(par.Nn): # think of this as the post decision housing
 
                 # a. Income and and housing state
                 y = par.grid_y[i_y]
                 n = par.grid_n[i_n]
 
                 # b. initialize at zero
-                for i_a in range(par.Na):
+                for i_a in prange(par.Na):
                     w[i_a] = 0.0
                     q[i_pb,i_y,i_n,i_a] = 0.0
 
                 # c. Loop over income values
-                for ishock in range(par.Ny):
+                for ishock in prange(par.Ny):
 
                     # ii. Next-period income and durables given ishock
                     y_plus = par.grid_y[ishock]
@@ -61,7 +61,7 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
                     weight = par.p_mat[i_y,ishock]
 
                     # v. Next-period cash-on-hand and total resources
-                    for i_a in range(par.Na):
+                    for i_a in prange(par.Na):
                         
                         # o. If keeping next period
                         m_plus[i_a] = trans.m_plus_func(par.grid_a[i_a],R,y_plus,n,ph,par)
@@ -82,7 +82,7 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
 
                     linear_interp.interp_1d_vec(par.grid_m,sol.inv_marg_u_keep[t+1,i_pb,ishock,i_n],m_plus,inv_marg_u_keep_plus)
                     linear_interp.interp_1d_vec(par.grid_x,sol.inv_marg_u_adj[t+1,i_pb,ishock],x_plus,inv_marg_u_adj_plus)
-                    
+                    # print(inv_marg_u_adj_plus)
                     # assert np.all(inv_marg_u_keep_plus >= 0)
                     # assert np.all(inv_marg_u_adj_plus >= 0)
                     
@@ -107,5 +107,5 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
                         q[i_pb,i_y,i_n,i_a] += weight*par.beta*R*marg_u_plus
             
                 # d. Transform post decision value function
-                for i_a in range(par.Na):
+                for i_a in prange(par.Na):
                     inv_w[i_pb,i_y,i_n,i_a] = -1/w[i_a]
