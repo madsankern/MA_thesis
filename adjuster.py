@@ -12,7 +12,7 @@ import utility
 # Adjust #
 ##########
 
-@njit(parallel=True)
+@njit #(parallel=True)
 def solve_adj(t,sol,par,ph):
     """solve bellman equation for adjusters using value function iteration"""
 
@@ -59,7 +59,7 @@ def solve_adj(t,sol,par,ph):
                     continue
 
                 # vi. Compute value of each choice of housing
-                for i_n in prange(par.Nn):
+                for i_n in range(par.Nn):
                     d_temp = grid_n[i_n]
                     res = x - par.phi*ph*d_temp # residual cash on hand
                     
@@ -69,7 +69,7 @@ def solve_adj(t,sol,par,ph):
                         value_of_choice[i_n] = linear_interp.interp_1d(grid_m,inv_v_keep[i_pb,i_y,i_n],res) # Interpolate over keeper value
 
                 # v. Find optimal choice
-                i_n_opt = int(np.argmax(value_of_choice))
+                i_n_opt = np.argmax(value_of_choice)
                 d[i_pb,i_y,i_x] = grid_n[i_n_opt] # Optimal choice of housing
 
                 # c. Find non-durables and value function
