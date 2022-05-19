@@ -13,14 +13,15 @@ import numpy as np
 from consav import ModelClass, jit # baseline model class and jit
 from consav import linear_interp # for linear interpolation
 from consav.grids import nonlinspace # grids
+from consav import markov
 
 # local modules
 import utility
 import trans
 import last_period
 import post_decision
-import vfi
-import negm
+import keeper
+import adjuster
 import simulate
 import path
 
@@ -75,6 +76,9 @@ class HousingModelClass(ModelClass):
         par.R_drop = 0.005 # Drop in interest rates for shock
 
         # e. Markov process income
+        par.theta = 0.95
+        par.sigma_y = 0.05
+
         par.p_12 = 0.33
         par.p_21 = 0.33
 
@@ -96,7 +100,7 @@ class HousingModelClass(ModelClass):
         par.taug = 0.0 # Gains tax
 
         # h. Grids
-        par.Ny = 2 # update this
+        par.Ny = 5 # update this
         par.y_min = 0.7
         par.y_max = 1.3
         par.Nn = 10
@@ -153,12 +157,15 @@ class HousingModelClass(ModelClass):
         par.do_marg_u = True
 
         # a. States
-        par.grid_y = nonlinspace(par.y_min,par.y_max,par.Ny,1.1)
-        par.grid_n = nonlinspace(par.n_min,par.n_max,par.Nn,1.0) # set to minus 1 again
+        # par.grid_y = nonlinspace(par.y_min,par.y_max,par.Ny,1.1)
+        par.grid_n = nonlinspace(par.n_min,par.n_max,par.Nn-1,1.0) # set to minus 1 again
         par.grid_n = np.insert(par.grid_n,0,0) # Add a zero in the beginning of the array
         par.grid_m = nonlinspace(0,par.m_max,par.Nm,1.1)
         par.grid_x = nonlinspace(0,par.x_max,par.Nx,1.1)
         par.grid_pb = nonlinspace(par.pb_min,par.pb_max,par.Npb,1.0)
+
+        # Markov approx for income
+        par.grid_y,par.p_mat,par.pi,par.p_mat_cum,par.pi_cum = markov.log_rouwenhorst(par.theta,par.sigma_y,par.Ny)
         
         # b. Post-decision states
         par.grid_a = nonlinspace(0,par.a_max,par.Na,1.1)
@@ -336,14 +343,14 @@ class HousingModelClass(ModelClass):
                     assert np.all((sol.q[t] > 0) & (np.isnan(sol.q[t]) == False)), t
 
                     # oo. Solve keeper problem
-                    negm.solve_keep(t,sol,par)
+                    keeper.solve_keep(t,sol,par)
 
                     if do_assert:
                         assert np.all((sol.c_keep[t] >= 0) & (np.isnan(sol.c_keep[t]) == False)), t
                         assert np.all((sol.inv_v_keep[t] >= 0) & (np.isnan(sol.inv_v_keep[t]) == False)), t
 
                     # ooo. Solve adjuster problem
-                    vfi.solve_adj(t,sol,par,par.ph)                  
+                    adjuster.solve_adj(t,sol,par,par.ph)                  
 
                     if do_assert:
                         assert np.all((sol.d_adj[t] >= 0) & (np.isnan(sol.d_adj[t]) == False)), t
@@ -493,10 +500,10 @@ class HousingModelClass(ModelClass):
                     post_decision.compute_wq(t,R,sol_path,par,ph,compute_q=True)
 
                     # oo. Solve keeper
-                    negm.solve_keep(t,sol_path,par)
+                    keeper.solve_keep(t,sol_path,par)
 
                     # ooo. Solve adjuster
-                    vfi.solve_adj(t,sol_path,par,ph)
+                    adjuster.solve_adj(t,sol_path,par,ph)
 
         # b. Replace end points with the 50'th iteration to remove terminal period effect
         with jit(self) as model:
