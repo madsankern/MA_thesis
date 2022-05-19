@@ -7,17 +7,17 @@ from consav import golden_section_search
 # local modules
 import utility
 
-# a. objective
-@njit
-def obj_last_period(d,x,par,ph):
-    """ objective function in last period """
+# # a. objective
+# @njit
+# def obj_last_period(d,x,par,ph):
+#     """ objective function in last period """
     
-    # implied consumption (rest)
-    c = x - par.phi*ph*d
+#     # implied consumption (rest)
+#     c = x - par.phi*ph*d
 
-    return utility.func(c,d,par)
+#     return utility.func(c,d,par)
 
-#@njit #(parallel=True)
+@njit(parallel=True)
 def solve(t,sol,par,ph):
     """ solve the problem in the last period """
 
@@ -33,8 +33,8 @@ def solve(t,sol,par,ph):
     value_of_choice = np.zeros(shape=par.Nn) # for choosing optimal housing
 
     # a. Keep
-    for i_y in range(par.Ny):
-        for i_pb in range(par.Npb): # no need to loop over this
+    for i_pb in prange(par.Npb):
+        for i_y in range(par.Ny): # no need to loop over this
             for i_n in range(par.Nn):
                 for i_m in range(par.Nm):
                                 
@@ -57,8 +57,8 @@ def solve(t,sol,par,ph):
                     inv_marg_u_keep[i_pb,i_y,i_n,i_m] = 1.0/utility.marg_func(c_keep[i_pb,i_y,i_n,i_m],n,par)
 
     # b. Adj
-    for i_y in range(par.Ny): #prange
-        for i_pb in range(par.Npb):
+    for i_pb in range(par.Npb):
+        for i_y in range(par.Ny):
             for i_x in range(par.Nx):
                 
                 # i. States
@@ -88,13 +88,12 @@ def solve(t,sol,par,ph):
                     else:
                         value_of_choice[i_n] = -1.0/utility.func(c,d,par)
 
-                i_opt = np.argmax(value_of_choice)
-                # print(value_of_choice)
-                # print(i_opt)
-                d_adj[i_pb,i_y,i_x] = par.grid_n[i_opt] # Optimal choice of housing
+                i_n_opt = np.argmax(value_of_choice)
+
+                d_adj[i_pb,i_y,i_x] = par.grid_n[i_n_opt] # Optimal choice of housing
                 c_adj[i_pb,i_y,i_x] = x - par.phi*ph*d_adj[i_pb,i_y,i_x] # use residual income on the non-durable
 
-                # iii. optimal value
-                v_adj = utility.func(c_adj[i_pb,i_y,i_x],d_adj[i_pb,i_y,i_x],par) #obj_last_period(d_adj[i_pb,i_y,i_x],x,par,ph)
+                # iii. Optimal value
+                v_adj = utility.func(c_adj[i_pb,i_y,i_x],d_adj[i_pb,i_y,i_x],par)
                 inv_v_adj[i_pb,i_y,i_x] = -1.0/v_adj
                 inv_marg_u_adj[i_pb,i_y,i_x] = 1.0/utility.marg_func(c_adj[i_pb,i_y,i_x],d_adj[i_pb,i_y,i_x],par)
