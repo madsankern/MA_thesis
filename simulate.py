@@ -59,7 +59,6 @@ def monte_carlo(sim,sol,par,path=False):
 
                 # oo. Income
                 state_lag = markov.choice(rand0[i], par.pi_cum) # Initialize from stationary distribution
-                # y0 = grid_y[state_lag] # Income in period t-1
 
                 state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:]) # Finds the INDEX of current y
                 y[t,i] = grid_y[state[t,i]] # Income in period t
@@ -81,21 +80,19 @@ def monte_carlo(sim,sol,par,path=False):
                 n[t,i] = trans.n_plus_func(d[t-1,i],par)
                 
                 # ooo. Cash on hand
-                # m[t,i] = trans.m_plus_func(a[t-1,i],y[t,i],par,n[t,i],par.path_R[t-1],par.path_ph[t-1])
-                m[t,i] = trans.m_plus_func(a[t-1,i],par.path_R[t-1], y[t,i], n[t,i], par.path_ph[t-1],par)
+                m[t,i] = trans.m_plus_func(a[t-1,i],par.path_R[t-1],y[t,i],n[t,i], par.path_ph[t-1],par)
 
                 # oooo. Lagged purchase price
                 pb_lag = pb[t-1,i]
             
-            # b. optimal choices and post decision states
-            # optimal_choice(t,state[t,i],n[t,i],m[t,i],discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],pb[t,i:],sol,par,ph,path,pb_lag)
+            # b. Find optimal choices and post decision states
             optimal_choice(t,state[t,i],n[t,i],m[t,i],pb_lag,ph,discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],pb[t,i:],sol,par,path)
 
 @njit
 def optimal_choice(t,state,n,m,pb_lag,ph,discrete,d,c,a,pb,sol,par,path=False):
 # order of input: beggining of period states, end period states,containers,option
 
-    # a. Ensure t is constaint if simulating in steady state
+    # a. Ensure t is constant if simulating in steady state
     if path == False:
         t = 0
 
@@ -114,7 +111,7 @@ def optimal_choice(t,state,n,m,pb_lag,ph,discrete,d,c,a,pb,sol,par,path=False):
     # b. Find implied durable and non-durable consumption from discrete choice
     if adjust:
 
-        discrete[0] = 1 # This is just to compute the share of adjusters
+        discrete[0] = 1 
         pb[0] = pb_adj # Update purchase price
         
         d[0] = linear_interp.interp_2d(
