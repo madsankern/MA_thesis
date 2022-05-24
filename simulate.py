@@ -51,14 +51,17 @@ def monte_carlo(sim,sol,par,path=False):
                 R = par.R
                 ph = par.ph
             
-            # ii. beginning of period states
+            # ii. Determine beginning of period states
             if t == 0:
 
                 # o. Purchase price
                 pb_lag = par.ph
 
                 # oo. Income
-                state_lag = markov.choice(rand0[i], par.pi_cum) # Initialize from stationary distribution
+                if path:
+                    state_lag = int(sim.state_lag[i]) #markov.choice(rand0[i], par.pi_cum) #0.0 #state_lagg[i] #sim.state_lag
+                else:
+                    state_lag = markov.choice(rand0[i], par.pi_cum) # Initialize from stationary distribution
 
                 state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:]) # Finds the INDEX of current y
                 y[t,i] = grid_y[state[t,i]] # Income in period t
@@ -71,8 +74,12 @@ def monte_carlo(sim,sol,par,path=False):
 
             else:
 
+                # oooo. Lagged purchase price
+                pb_lag = pb[t-1,i]
+
                 # o. Income
                 state_lag = state[t-1,i] # last period value
+
                 state[t,i] = markov.choice(rand[t,i], par.p_mat_cum[state_lag,:])
                 y[t,i] = grid_y[state[t,i]]
                 
@@ -82,8 +89,6 @@ def monte_carlo(sim,sol,par,path=False):
                 # ooo. Cash on hand
                 m[t,i] = trans.m_plus_func(a[t-1,i],par.path_R[t-1],y[t,i],n[t,i], par.path_ph[t-1],par)
 
-                # oooo. Lagged purchase price
-                pb_lag = pb[t-1,i]
             
             # b. Find optimal choices and post decision states
             optimal_choice(t,state[t,i],n[t,i],m[t,i],pb_lag,ph,discrete[t,i:],d[t,i:],c[t,i:],a[t,i:],pb[t,i:],sol,par,path)
@@ -128,6 +133,7 @@ def optimal_choice(t,state,n,m,pb_lag,ph,discrete,d,c,a,pb,sol,par,path=False):
             # c[0] *= x/tot
             c[0] -= tot-x
             a[0] = 0.0
+            # discrete[0] = 2
         else:
             a[0] = x - tot
                             
