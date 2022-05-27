@@ -16,4 +16,4 @@ def m_plus_func(a,R,y_plus,n,ph,par):
 # c. Cash on hand when adjusting
 @njit(fastmath=True)
 def x_plus_func(m_plus,n_plus,ph,pb,par):
-    return m_plus + (ph*n_plus - (1.0-par.phi)*pb*n_plus) - par.taug*n_plus*(ph - pb) - par.eta
+    return m_plus + (ph*n_plus - (1.0-par.phi)*pb*n_plus) - np.max( np.array([par.taug*n_plus*(ph - pb),0.0]) ) - par.eta
