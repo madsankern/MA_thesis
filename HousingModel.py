@@ -54,7 +54,7 @@ class HousingModelClass(ModelClass):
         par = self.par
 
         # a. Horizon
-        par.T = 20 #80 # NOTE find out what this should be, Number of iterations to find stationary solution
+        par.T = 200 #80 # NOTE find out what this should be, Number of iterations to find stationary solution
         par.path_T = 200 # Length of model solve along the path
         par.sim_T = 200 # Length of stationary simulation to ensure convergence
         
@@ -62,33 +62,23 @@ class HousingModelClass(ModelClass):
         par.beta = 0.965
         par.rho = 2.0
         par.alpha = 0.7
-        par.d_ubar = 1.0
+        par.d_ubar = 2.0
 
         # c. Prices and costs
         par.R = 1.03
         par.ph = 1.0 # House price - rename to p, set to equilibrium
         par.deltaa = 0.1 # maintenence cost
         par.phi = 1.0 # downpayment fraction
+        par.eta = .01
 
         # d. Path for aggregate states
         par.path_R = np.full(par.path_T + par.T, par.R) # for impulse response
         par.path_ph = np.full(par.path_T + par.T, par.ph) # House price sequence
-        par.R_drop = 0.005 # Drop in interest rates for shock
+        par.R_drop = 0.01 #0.005 # Drop in interest rates for shock
 
         # e. Markov process income
         par.theta = 0.95
         par.sigma_y = 0.05
-
-        par.p_12 = 0.33
-        par.p_21 = 0.33
-
-        par.p_mat = np.array([ 
-            [1-par.p_12, par.p_12], 
-            [par.p_21, 1-par.p_21]])
-        par.p_mat_cum = np.array([np.cumsum(par.p_mat[i,:]) for i in range(2)])
-
-        par.pi = np.array([1/2,1/2]) # stationary distribution
-        par.pi_cum = np.array(np.cumsum(par.pi))
 
         # f. Purchase price - Ensure eq. price is in the interval
         par.Npb = 2
@@ -101,11 +91,11 @@ class HousingModelClass(ModelClass):
 
         # h. Grids
         par.Ny = 5 # update this
-        par.y_min = 0.7
-        par.y_max = 1.3
+        # par.y_min = 0.7
+        # par.y_max = 1.3
         par.Nn = 10
         par.n_min = 1.0 #2.5
-        par.n_max = 3.5
+        par.n_max = 3.0
         par.Nm = 100
         par.m_max = 10.0
         par.Nx = 100
@@ -120,7 +110,7 @@ class HousingModelClass(ModelClass):
         par.mu_a0 = 0.6
         par.sigma_a0 = 0.1
         par.simN = 100_000
-        par.sim_seed = 217
+        par.sim_seed = 218
         par.euler_cutoff = 0.02
 
         # j. Misc
@@ -189,7 +179,7 @@ class HousingModelClass(ModelClass):
         sim.rand0 = np.random.uniform(size=par.simN) # Initial y state
         sim_path.rand0 = sim.rand[-1,:] # use last period for path
 
-        # a. Initial allocation of housing and cash on hand
+        # g. Initial allocation of housing and cash on hand
         sim.d0 = np.zeros(par.simN)
         sim.a0 = np.zeros(par.simN)
 
@@ -303,7 +293,7 @@ class HousingModelClass(ModelClass):
         # d. Distance between iterations
         sol.dist = np.nan*np.zeros(par.T)
 
-    def solve(self,do_assert=True):
+    def solve(self,do_assert=False):
         """ Solve the model
         
         Args:
@@ -321,10 +311,11 @@ class HousingModelClass(ModelClass):
                 
                 # ii. Last period
                 if t == par.T-1:
-
+                    # tic = time.time()
                     # o. Solve last period
                     last_period.solve(t,sol,par,par.ph)
-                    
+                    # toc = time.time()
+                    # print(f'last_period computed in {toc-tic:.1f} secs')
                     # oo. Check solution for errors
                     if do_assert:
                         assert np.all((sol.c_keep[t] >= 0) & (np.isnan(sol.c_keep[t]) == False))
@@ -335,23 +326,27 @@ class HousingModelClass(ModelClass):
 
                 # iii. All other periods
                 else:
-                    
+                    # tic = time.time()
                     # o. Compute post-decision functions
                     post_decision.compute_wq(t,par.R,sol,par,par.ph,compute_q=True)
-
-                    assert np.all((sol.inv_w[t] > 0) & (np.isnan(sol.inv_w[t]) == False)), t 
-                    assert np.all((sol.q[t] > 0) & (np.isnan(sol.q[t]) == False)), t
-
+                    # toc = time.time()
+                    # print(f'post_decision computed in {toc-tic:.1f} secs')
+                    if do_assert:
+                        assert np.all((sol.inv_w[t] > 0) & (np.isnan(sol.inv_w[t]) == False)), t 
+                        assert np.all((sol.q[t] > 0) & (np.isnan(sol.q[t]) == False)), t
+                    # tic = time.time()    
                     # oo. Solve keeper problem
                     keeper.solve_keep(t,sol,par)
-
+                    # toc = time.time()
+                    # print(f'keeper computed in {toc-tic:.1f} secs')
                     if do_assert:
                         assert np.all((sol.c_keep[t] >= 0) & (np.isnan(sol.c_keep[t]) == False)), t
                         assert np.all((sol.inv_v_keep[t] >= 0) & (np.isnan(sol.inv_v_keep[t]) == False)), t
-
+                    # tic = time.time()
                     # ooo. Solve adjuster problem
                     adjuster.solve_adj(t,sol,par,par.ph)                  
-
+                    # toc = time.time()
+                    # print(f'adjuster computed in {toc-tic:.1f} secs')
                     if do_assert:
                         assert np.all((sol.d_adj[t] >= 0) & (np.isnan(sol.d_adj[t]) == False)), t
                         assert np.all((sol.c_adj[t] >= 0) & (np.isnan(sol.c_adj[t]) == False)), t
@@ -418,6 +413,7 @@ class HousingModelClass(ModelClass):
 
         # d. Income states
         sim.state = np.zeros((par.sim_T,par.simN),dtype=np.int_)
+        sim.state_lag = np.zeros(par.simN) # not used
 
     def simulate(self,do_utility=False,do_euler_error=False):
         """ simulate the model """
@@ -541,6 +537,7 @@ class HousingModelClass(ModelClass):
         # a. initial allocation
         sim_path.d0 = np.zeros(par.simN)
         sim_path.a0 = np.zeros(par.simN)
+        sim_path.state_lag = np.zeros(par.simN)
 
         # b. Household utility
         sim_path.utility = np.zeros(par.simN)
@@ -562,14 +559,15 @@ class HousingModelClass(ModelClass):
     def simulate_path(self):
         '''Simulate a panel of households along a transition path'''
     
-        par = self.par
-        sol_path = self.sol_path
+        # par = self.par
+        # sol_path = self.sol_path
         sim_path = self.sim_path
         sim = self.sim # ss simulation
 
         # a. Last period of ss simulation as initial allocation
-        sim_path.d0[:] = sim.d[-1]
-        sim_path.a0[:] = sim.a[-1]
+        sim_path.d0[:] = sim.d[-1,:]
+        sim_path.a0[:] = sim.a[-1,:]
+        sim_path.state_lag[:] = sim.state[-1,:]
 
         # b. call simulation function
         with jit(self) as model:
@@ -580,3 +578,24 @@ class HousingModelClass(ModelClass):
             sim = self.sim
 
             simulate.monte_carlo(sim_path,sol_path,par,path=True)
+
+    # def simulate(self,do_utility=False,do_euler_error=False):
+    #     """ simulate the model """
+
+    #     par = self.par
+    #     sol = self.sol
+    #     sim = self.sim
+
+    #     # a. Ensure that paths for R and p are constantly equal to their ss value
+    #     par.path_R[:] = par.R
+    #     par.path_ph[:] = par.ph
+
+    #     # b. Call
+    #     with jit(self) as model:
+
+    #         par = model.par
+    #         sol = model.sol
+    #         sim = model.sim
+    #         sim_path = model.sim_path # Can be removed?
+
+    #         simulate.monte_carlo(sim,sol,par,path=False)
