@@ -61,12 +61,12 @@ class HousingModelClass(ModelClass):
         # b. Preferences
         par.beta = 0.965
         par.rho = 2.0
-        par.alpha = 0.7
-        par.d_ubar = 2.0
+        par.alpha = 0.82
+        par.d_ubar = 1.5
 
         # c. Prices and costs
         par.R = 1.03
-        par.ph = 1.0 # House price - rename to p, set to equilibrium
+        par.ph = 1.0 # House price, set to equilibrium
         par.deltaa = 0.1 # maintenence cost
         par.phi = 1.0 # downpayment fraction
         par.eta = .01
@@ -77,8 +77,8 @@ class HousingModelClass(ModelClass):
         par.R_drop = 0.01 #0.005 # Drop in interest rates for shock
 
         # e. Markov process income
-        par.theta = 0.95
-        par.sigma_y = 0.05
+        par.theta = 0.9
+        par.sigma_y = 0.1
 
         # f. Purchase price - Ensure eq. price is in the interval
         par.Npb = 2
@@ -91,15 +91,13 @@ class HousingModelClass(ModelClass):
 
         # h. Grids
         par.Ny = 5 # update this
-        # par.y_min = 0.7
-        # par.y_max = 1.3
         par.Nn = 10
-        par.n_min = 1.0 #2.5
-        par.n_max = 3.0
+        par.n_min = .5 #1.0
+        par.n_max = 2
         par.Nm = 100
-        par.m_max = 10.0
+        par.m_max = 16.0
         par.Nx = 100
-        par.x_max = par.m_max + 2*par.ph*par.n_max # Find an appropriate value for the upper limit
+        par.x_max = par.m_max + 2*par.ph*par.n_max 
         par.Na = 100
         par.a_max = par.m_max-2.0
 
@@ -354,8 +352,9 @@ class HousingModelClass(ModelClass):
 
                 # iv. Compute distance to previous iteration
                 if t < par.T-1:
-                    # sol.dist[t] = np.abs(np.max(sol.c_keep[t+1,:,:,:,:] - sol.c_keep[t,:,:,:,:]))
-                    sol.dist[t] = np.abs(np.max(sol.c_adj[t+1,:,:,:] - sol.c_adj[t,:,:,:]))
+                    dist1 = np.abs(np.max(sol.c_keep[t+1,:,:,:,:] - sol.c_keep[t,:,:,:,:]))
+                    dist2 = np.abs(np.max(sol.c_adj[t+1,:,:,:] - sol.c_adj[t,:,:,:]))
+                    sol.dist[t] = np.max(dist1,dist2)
 
         # b. Insert last iteration in all periods (infinite horizon)
         with jit(self) as model:
@@ -578,24 +577,3 @@ class HousingModelClass(ModelClass):
             sim = self.sim
 
             simulate.monte_carlo(sim_path,sol_path,par,path=True)
-
-    # def simulate(self,do_utility=False,do_euler_error=False):
-    #     """ simulate the model """
-
-    #     par = self.par
-    #     sol = self.sol
-    #     sim = self.sim
-
-    #     # a. Ensure that paths for R and p are constantly equal to their ss value
-    #     par.path_R[:] = par.R
-    #     par.path_ph[:] = par.ph
-
-    #     # b. Call
-    #     with jit(self) as model:
-
-    #         par = model.par
-    #         sol = model.sol
-    #         sim = model.sim
-    #         sim_path = model.sim_path # Can be removed?
-
-    #         simulate.monte_carlo(sim,sol,par,path=False)
