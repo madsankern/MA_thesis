@@ -81,7 +81,7 @@ class HousingModelClass(ModelClass):
         par.sigma_y = 0.1
 
         # f. Purchase price - Ensure eq. price is in the interval
-        par.Npb = 2
+        par.Npb = 100
         par.pb_max = 2.0
         par.pb_min = 0.7
         
