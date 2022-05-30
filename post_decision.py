@@ -53,10 +53,6 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
                     y_plus = par.grid_y[ishock]
                     n_plus = trans.n_plus_func(n,par)
 
-                    # iii. Prepare interpolators
-                    # prep_keep = linear_interp.interp_1d_prep(par.Na) #linear_interp.interp_2d_prep(par.grid_n,n_plus,par.Na)
-                    # prep_adj = linear_interp.interp_1d_prep(par.Na)
-
                     # iv. Weight of each income shock from Markov probabilities
                     weight = par.p_mat[i_y,ishock]
 
@@ -70,21 +66,11 @@ def compute_wq(t,R,sol,par,ph,compute_q=False):
                         x_plus[i_a] = trans.x_plus_func(m_plus[i_a],n_plus,ph,pb,par) # should this be pb in t+1?
                     
                     # vi. Interpolate
-                    # linear_interp.interp_1d_vec_mon(prep_keep,par.grid_m,sol.inv_v_keep[t+1,i_pb,ishock,i_n],m_plus,inv_v_keep_plus)
-                    # linear_interp.interp_1d_vec_mon(prep_adj,par.grid_x,sol.inv_v_adj[t+1,i_pb,ishock],x_plus,inv_v_adj_plus)
-                    
-                    # linear_interp.interp_1d_vec_mon_rep(prep_keep,par.grid_m,sol.inv_marg_u_keep[t+1,i_pb,ishock,i_n],m_plus,inv_marg_u_keep_plus)
-                    # linear_interp.interp_1d_vec_mon_rep(prep_adj,par.grid_x,sol.inv_marg_u_adj[t+1,i_pb,ishock],x_plus,inv_marg_u_adj_plus)
-
-                    # vi_prime Test interpolate
                     linear_interp.interp_1d_vec(par.grid_m,sol.inv_v_keep[t+1,i_pb,ishock,i_n],m_plus,inv_v_keep_plus)
                     linear_interp.interp_1d_vec(par.grid_x,sol.inv_v_adj[t+1,i_pb,ishock],x_plus,inv_v_adj_plus)
 
                     linear_interp.interp_1d_vec(par.grid_m,sol.inv_marg_u_keep[t+1,i_pb,ishock,i_n],m_plus,inv_marg_u_keep_plus)
                     linear_interp.interp_1d_vec(par.grid_x,sol.inv_marg_u_adj[t+1,i_pb,ishock],x_plus,inv_marg_u_adj_plus)
-                    # print(inv_marg_u_adj_plus)
-                    # assert np.all(inv_marg_u_keep_plus >= 0)
-                    # assert np.all(inv_marg_u_adj_plus >= 0)
                     
                     # vii. Find max and accumulate.
                     for i_a in range(par.Na):

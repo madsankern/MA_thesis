@@ -76,5 +76,5 @@ def solve_adj(t,sol,par,ph):
                 m = x - par.phi*ph*d[i_pb,i_y,i_x]
                 c[i_pb,i_y,i_x] = linear_interp.interp_1d(grid_m,c_keep[i_pb,i_y,i_n_opt],m)
                 
-                inv_v[i_pb,i_y,i_x] = linear_interp.interp_1d(grid_m,inv_v_keep[i_pb,i_y,i_n_opt],m)    #value_of_choice[i_n_opt]
+                inv_v[i_pb,i_y,i_x] = linear_interp.interp_1d(grid_m,inv_v_keep[i_pb,i_y,i_n_opt],m)
                 inv_marg_u[i_pb,i_y,i_x] = 1.0/utility.marg_func_nopar(c[i_pb,i_y,i_x],d[i_pb,i_y,i_x],d_ubar,alpha,rho)
